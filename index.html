@@ -310,6 +310,14 @@
   </div>
 </div>
 
+<div id="sTutUI" style="position:fixed;inset:0;z-index:35;pointer-events:none;display:none;font-family:'Courier New',monospace;color:#eaf6ff">
+  <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(10,18,36,.94);border:3px solid #ffd52e;padding:10px 18px;text-align:center;max-width:min(620px,94vw);box-shadow:0 6px 0 rgba(0,0,0,.5)">
+    <div id="sTutObjTitle" style="font-weight:bold;color:#ffd52e;font-size:16px;letter-spacing:.06em"></div>
+    <div id="sTutObjText" style="font-size:12px;color:#8fb3d9;margin-top:3px;line-height:1.7"></div>
+  </div>
+  <div id="sTutSteps" style="position:absolute;top:14px;left:12px;background:rgba(10,18,36,.94);border:3px solid #2b4a73;padding:10px 12px;font-size:11.5px;line-height:2"></div>
+  <button id="sTutSkip" class="btn alt small" style="position:absolute;bottom:16px;right:16px;pointer-events:auto">SKIP TUTORIAL ✖</button>
+</div>
 <script>
 "use strict";
 /* ============================================================
@@ -744,11 +752,11 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyR'){ if(player&&state==='playing')startReload(player); else if(state==='over')restart(); }
   if(e.code==='KeyM')toggleMute();
   if(e.code==='Escape'||e.code==='KeyP'){ if(state==='playing')pauseGame(); else if(state==='paused')resumeGame(); }
-  if(e.code==='Enter'&&state==='menu')startMatch();
+  if(e.code==='Enter'&&state==='menu')playGate();
 });
 addEventListener('keyup',e=>{ keys[e.code]=false; if(e.code==='MetaLeft'||e.code==='MetaRight'||e.code==='AltLeft')clearInputs(); });
 canvas.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
-canvas.addEventListener('mousedown',e=>{ audio(); if(state==='playing'){mouse.down=true;mouse.x=e.clientX;mouse.y=e.clientY;} });
+canvas.addEventListener('mousedown',e=>{ audio(); if(state==='playing'||state==='tut'){mouse.down=true;mouse.x=e.clientX;mouse.y=e.clientY;} });
 addEventListener('mouseup',()=>mouse.down=false);
 document.addEventListener('input',e=>{
   const k=e.target&&e.target.dataset?e.target.dataset.ch:null; if(!k||!(k in CH))return;
@@ -1246,7 +1254,7 @@ function beginMatch(){
 }
 function pauseGame(){ if(state!=='playing')return; state='paused'; clearInputs(); show('pauseOv',true); renderCHControls(); }
 function resumeGame(){ if(state!=='paused')return; state='playing'; show('pauseOv',false); audio(); }
-function toMenu(){ clearInputs(); state='menu'; show('pauseOv',false); show('overOv',false); show('menu',true); $('hud').classList.remove('on'); fighters=[]; renderScores('menuScores',-1); showView('home'); renderMenuHome(); }
+function toMenu(){ clearInputs(); state='menu'; show('pauseOv',false); show('overOv',false); show('menu',true); $('hud').classList.remove('on'); fighters=[]; renderScores('menuScores',-1); showView('home'); renderMenuHome(); updatePlayGate(); }
 function endMatch(){
   if(state==='over')return; state='over'; clearInputs();
   const place=player.alive?1:aliveCount+1;
@@ -1267,7 +1275,7 @@ function endMatch(){
 }
 function toggleMute(){ muted=!muted; localStorage.setItem('pr_muted',muted?'1':'0'); if(masterGain)masterGain.gain.value=muted?0:.42; $('muteBtn').textContent=muted?'✕':'♪'; syncMuteBtn(); toast(muted?'🔇 Sound off':'🔊 Sound on',1200); }
 
-$('playBtn').onclick=()=>startMatch();
+$('playBtn').onclick=()=>playGate();
 $('resumeBtn').onclick=resumeGame;
 $('restartBtn2').onclick=restart;
 $('againBtn').onclick=restart;
@@ -1329,6 +1337,7 @@ function frame(now){
   requestAnimationFrame(frame);
   let dt=(now-last)/1000; last=now;
   if(dt>.05)dt=.05;
+  if(state==='tut'){ sTutUpdate(dt); sTutRender(); return; }
   if(state==='playing'){
     if(hitstop>0){ hitstop-=dt; render(); return; }
     update(slowmo>0?dt*.38:dt);
@@ -1341,6 +1350,159 @@ function frame(now){
     if(countdownT<=0)beginMatch();
   } else if(state==='menu'){ matchTime+=dt; menuScene(); }
   render();
+}
+/* ================= SOLO PLAYABLE TUTORIAL (shares save keys with online) ================= */
+let STU=null, sGrassPat=null;
+const STW={cx:800,cy:800,r:720};
+const SSTEPS=['MOVE','DASH','SHOOT THE TARGETS','OPEN THE CRATE','TAKE THE GUN','SWAP WEAPON','HIDE IN THE BUSH','REACH THE SAFE CIRCLE'];
+function tutDonePlay(){ try{ return localStorage.getItem('pr_trained')==='1'||localStorage.getItem('pr_tutored')==='1'; }catch(e){ return false; } }
+function updatePlayGate(){ const b=$('playBtn'); if(b)b.textContent=tutDonePlay()?'▶ PLAY':'🎓 TRAINING (DO THIS FIRST!)'; }
+function playGate(){ if(tutDonePlay())startMatch(); else sTutStart(); }
+function sTutStart(){
+  audio(); show('menu',false); state='tut'; $('sTutUI').style.display='block';
+  let saved=0; try{ saved=Math.max(0,Math.min(7,parseInt(localStorage.getItem('pr_tut_step')||'0')||0)); }catch(e){}
+  STU={step:saved,t:0,holdT:0,dashed:false,rolling:0,rollName:'',rollTick:0,swapFlag:false,
+    px:450,py:850,vx:0,vy:0,aim:0,weapon:'pistol',inv:['pistol'],cool:0,dashT:0,dashCD:0,ddx:1,ddy:0,hidden:false,
+    bullets:[],parts:[],dummies:[{x:950,y:620,hp:33,alive:true},{x:1150,y:720,hp:33,alive:true},{x:1040,y:500,hp:33,alive:true}],
+    crate:{x:620,y:580,open:false},pickup:null,bush:{x:900,y:1060,r:56},safe:{x:1160,y:1010,r:95},camx:450,camy:834};
+  sTutSetup(); sTutSync();
+  if(saved>0)toast('📚 Resuming training at step '+(saved+1)+' — progress is saved!',2600);
+}
+function sTutSetup(){
+  const st=STU.step;
+  if(st>=3)STU.dummies.forEach(d=>d.alive=false);
+  if(st>=4)STU.crate.open=true;
+  if(st===4)STU.pickup={x:STU.crate.x+6,y:STU.crate.y+34,wkey:'ak'};
+  if(st>=5){ STU.inv=['pistol','ak']; STU.weapon='ak'; }
+  if(st===3){ STU.px=540; STU.py=650; }
+  if(st===4){ STU.px=555; STU.py=660; }
+  if(st===6){ STU.px=825; STU.py=1060; }
+  if(st===7){ STU.px=1010; STU.py=1010; }
+  STU.camx=STU.px; STU.camy=STU.py-16;
+}
+function sTutSync(){
+  if(!STU)return;
+  const titles=['① MOVE','② DASH','③ AIM & SHOOT','④ LOOT A CRATE','⑤ TAKE THE GUN','⑥ SWAP WEAPON','⑦ GO INVISIBLE','⑧ SURVIVE THE CIRCLE'];
+  const texts=['Use <b>WASD</b> to run into the glowing ring.','Press <b>SHIFT / SPACE</b> to dash into the far ring.','Aim with the <b>mouse</b>, hold <b>CLICK</b> to fire. Destroy all 3 targets!','Stand at the crate and press <b>E</b> to roll for a weapon.','The gun dropped on the floor — press <b>E</b> to take it.','You carry 2 guns now. Press <b>Q</b> to swap.','Stand in the bush for 1 second — enemies can\'t see you there.','Get inside the safe ring and stay there — outside burns!'];
+  if(STU.step<8){ $('sTutObjTitle').textContent=titles[STU.step];
+    $('sTutObjText').innerHTML=STU.rolling>0?('🎰 Rolling… <b style="color:#ffd52e">'+STU.rollName+'</b>'):texts[STU.step]; }
+  $('sTutSteps').innerHTML='<div style="font-weight:bold;color:#ffd52e">TRAINING</div>'+SSTEPS.map((t2,i)=>'<div style="color:'+(i<STU.step?'#3dff73':i===STU.step?'#ffd52e':'#8fb3d9')+'">'+(i<STU.step?'✔ ':i===STU.step?'▶ ':'· ')+t2+'</div>').join('');
+}
+function sTutTarget(){
+  if(!STU)return null;
+  switch(STU.step){
+    case 0: return {x:700,y:850};
+    case 1: return {x:1010,y:850};
+    case 2: { const d=STU.dummies.filter(d2=>d2.alive).sort((a,b)=>Math.hypot(a.x-STU.px,a.y-STU.py)-Math.hypot(b.x-STU.px,b.y-STU.py))[0]; return d?{x:d.x,y:d.y}:null; }
+    case 3: return {x:STU.crate.x,y:STU.crate.y};
+    case 4: return STU.pickup?{x:STU.pickup.x,y:STU.pickup.y}:null;
+    case 5: return {x:STU.px,y:STU.py};
+    case 6: return {x:STU.bush.x,y:STU.bush.y};
+    case 7: return {x:STU.safe.x,y:STU.safe.y};
+  } return null;
+}
+function sTutComplete(){
+  STU.step++; STU.holdT=0; STU.dashed=false; tone(880,.12,'square',.12); setTimeout(()=>tone(1174,.16,'square',.12),90);
+  try{ if(STU.step<8)localStorage.setItem('pr_tut_step',String(STU.step)); }catch(e){}
+  if(STU.step>=8){ sTutEnd(true); return; }
+  sTutSync();
+}
+function sTutEnd(finished){
+  STU=null; $('sTutUI').style.display='none'; clearInputs();
+  if(finished){ try{ localStorage.setItem('pr_trained','1'); localStorage.removeItem('pr_tut_step'); }catch(e){} }
+  toMenu();
+  if(finished)toast('🎓 TRAINING COMPLETE! Hit PLAY to drop in. (Pick your banner anytime in ONLINE mode)',3400);
+  else toast('📚 Training progress saved — finish it anytime from PLAY.',2600);
+}
+$('sTutSkip').onclick=()=>{ if(state==='tut')sTutEnd(false); };
+addEventListener('keydown',e=>{ if(state==='tut'&&e.code==='KeyQ'&&STU)STU.swapFlag=true; });
+function sBurst(x,y,n,cols){ if(!STU)return; for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2,v=(.3+Math.random()*.7)*220; STU.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:0,life:.4,col:cols[i%cols.length],size:3}); } }
+function sTutUpdate(dt){
+  if(!STU)return;
+  STU.t+=dt;
+  let mx=0,my=0;
+  if(keys.KeyA||keys.ArrowLeft)mx-=1; if(keys.KeyD||keys.ArrowRight)mx+=1;
+  if(keys.KeyW||keys.ArrowUp)my-=1; if(keys.KeyS||keys.ArrowDown)my+=1;
+  if(touchMove.active){ mx+=touchMove.x; my+=touchMove.y; }
+  const mm=Math.hypot(mx,my); if(mm>1){ mx/=mm; my/=mm; }
+  STU.dashCD-=dt; STU.cool-=dt;
+  if((keys.ShiftLeft||keys.ShiftRight||keys.Space)&&STU.dashCD<=0){ const dm=Math.hypot(mx,my);
+    if(dm>.1){ STU.ddx=mx/dm; STU.ddy=my/dm; } else { STU.ddx=Math.cos(STU.aim); STU.ddy=Math.sin(STU.aim); }
+    STU.dashT=.17; STU.dashCD=1.2; STU.dashed=true; if(SFX.dash)SFX.dash(); }
+  if(STU.dashT>0){ STU.dashT-=dt; STU.vx=STU.ddx*640; STU.vy=STU.ddy*640; } else { STU.vx=mx*264; STU.vy=my*264; }
+  STU.px+=STU.vx*dt; STU.py+=STU.vy*dt;
+  { const dx=STU.px-STW.cx, dy=STU.py-STW.cy, d=Math.hypot(dx,dy), max=STW.r-30; if(d>max){ STU.px=STW.cx+dx/d*max; STU.py=STW.cy+dy/d*max; } }
+  STU.camx+=(STU.px-STU.camx)*Math.min(1,dt*10); STU.camy+=(STU.py-16-STU.camy)*Math.min(1,dt*10);
+  const sx=STU.px-STU.camx+VW/2, sy=STU.py-28-STU.camy+VH/2;
+  if(touchAim.active&&(Math.abs(touchAim.x)>.12||Math.abs(touchAim.y)>.12))STU.aim=Math.atan2(touchAim.y,touchAim.x);
+  else STU.aim=Math.atan2(mouse.y-sy,mouse.x-sx);
+  const wp=WEAPONS[STU.weapon]||WEAPONS.pistol;
+  if((mouse.down||touchAim.fire)&&STU.cool<=0&&STU.step>=2){
+    STU.cool=wp.rate;
+    for(let p=0;p<wp.pellets;p++){ const a=wp.pellets>1?STU.aim+((p/(wp.pellets-1))-.5)*wp.spread*1.7:STU.aim+(Math.random()-.5)*wp.spread*1.4;
+      STU.bullets.push({x:STU.px+Math.cos(a)*34,y:STU.py-28+Math.sin(a)*34,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg}); }
+    if(SFX[STU.weapon])SFX[STU.weapon]();
+    sBurst(STU.px+Math.cos(STU.aim)*38,STU.py-28+Math.sin(STU.aim)*38,3,['#ffe9a3','#ffb02e']);
+  }
+  for(let i=STU.bullets.length-1;i>=0;i--){ const b=STU.bullets[i]; b.x+=b.vx*dt; b.y+=b.vy*dt; let hit=false;
+    for(const d of STU.dummies){ if(d.alive&&Math.hypot(b.x-d.x,b.y-(d.y-28))<27){ d.hp-=b.dmg; hit=true; sBurst(b.x,b.y,3,['#fff','#ffd52e']); if(d.hp<=0){ d.alive=false; sBurst(d.x,d.y-28,14,['#ff5c7a','#ffd52e','#fff']); if(SFX.killHit)SFX.killHit(); } break; } }
+    if(hit||Math.hypot(b.x-STW.cx,b.y-STW.cy)>STW.r+60)STU.bullets.splice(i,1); }
+  for(let i=STU.parts.length-1;i>=0;i--){ const q=STU.parts[i]; q.x+=q.vx*dt; q.y+=q.vy*dt; q.vx*=.88; q.vy*=.88; q.t+=dt; if(q.t>q.life)STU.parts.splice(i,1); }
+  if(STU.rolling>0){ STU.rolling-=dt; STU.rollTick+=dt;
+    if(STU.rollTick>.07){ STU.rollTick=0; STU.rollName=['BOOMSTICK','UZI SMG','M4 CARBINE','AK-47','RIPPER LMG'][Math.floor(Math.random()*5)]; sTutSync(); }
+    if(STU.rolling<=0){ STU.pickup={x:STU.crate.x+6,y:STU.crate.y+34,wkey:'ak'}; sTutComplete(); } }
+  STU.hidden=Math.hypot(STU.bush.x-STU.px,STU.bush.y-STU.py)<STU.bush.r;
+  const T=sTutTarget();
+  if(STU.step===0&&Math.hypot(T.x-STU.px,T.y-STU.py)<42)sTutComplete();
+  else if(STU.step===1&&STU.dashed&&Math.hypot(T.x-STU.px,T.y-STU.py)<46)sTutComplete();
+  else if(STU.step===2&&STU.dummies.every(d=>!d.alive))sTutComplete();
+  else if(STU.step===3&&keys.KeyE&&Math.hypot(STU.crate.x-STU.px,STU.crate.y-STU.py)<82&&STU.rolling<=0){ STU.crate.open=true; STU.rolling=1.25; tone(523,.1,'square',.1); }
+  else if(STU.step===4&&keys.KeyE&&STU.pickup&&Math.hypot(STU.pickup.x-STU.px,STU.pickup.y-STU.py)<58){ STU.inv.push('ak'); STU.weapon='ak'; STU.pickup=null; sTutComplete(); }
+  else if(STU.step===5&&STU.swapFlag){ STU.swapFlag=false; STU.weapon=STU.weapon==='ak'?'pistol':'ak'; sTutComplete(); }
+  else if(STU.step===6){ if(STU.hidden){ STU.holdT+=dt; if(STU.holdT>1)sTutComplete(); } else STU.holdT=0; }
+  else if(STU.step===7){ if(Math.hypot(STU.safe.x-STU.px,STU.safe.y-STU.py)<STU.safe.r){ STU.holdT+=dt; if(STU.holdT>1.2)sTutComplete(); } else STU.holdT=0; }
+}
+function sTutRender(){
+  ctx.fillStyle='#073350'; ctx.fillRect(0,0,VW,VH);
+  if(!STU)return;
+  ctx.save(); ctx.translate(Math.round(VW/2-STU.camx),Math.round(VH/2-STU.camy));
+  ctx.beginPath(); ctx.arc(STW.cx,STW.cy,STW.r,0,Math.PI*2); ctx.fillStyle='#e0bd7d'; ctx.fill();
+  ctx.beginPath(); ctx.arc(STW.cx,STW.cy,STW.r-44,0,Math.PI*2); ctx.fillStyle=sGrassPat||(sGrassPat=ctx.createPattern(grassTile,'repeat')); ctx.fill();
+  const T=sTutTarget();
+  if(STU.step===7){ ctx.beginPath(); ctx.rect(STW.cx-STW.r,STW.cy-STW.r,STW.r*2,STW.r*2); ctx.arc(STU.safe.x,STU.safe.y,STU.safe.r,0,Math.PI*2); ctx.fillStyle='rgba(150,40,220,.28)'; ctx.fill('evenodd');
+    ctx.strokeStyle='#e07bff'; ctx.lineWidth=4; ctx.setLineDash([14,10]); ctx.beginPath(); ctx.arc(STU.safe.x,STU.safe.y,STU.safe.r,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+  if(T){ const pulse=1+Math.sin(STU.t*6)*.14;
+    ctx.strokeStyle='#ffd52e'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(T.x,T.y,30*pulse,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#ffd52e'; const by=T.y-52+Math.sin(STU.t*5)*7;
+    ctx.beginPath(); ctx.moveTo(T.x,by+16); ctx.lineTo(T.x-11,by); ctx.lineTo(T.x+11,by); ctx.fill(); }
+  { const im=IMG.bush; if(im)ctx.drawImage(im,STU.bush.x-52,STU.bush.y+22-104*im.height/im.width,104,104*im.height/im.width); }
+  if(!STU.crate.open){ const im=IMG.crateWood; if(im)ctx.drawImage(im,STU.crate.x-28,STU.crate.y-24,56,56*im.height/im.width); }
+  else { ctx.fillStyle='#5d4020'; ctx.fillRect(STU.crate.x-22,STU.crate.y-4,44,14); }
+  if(STU.pickup){ const g2=GUNR.ak||IMG.ak, bob=Math.sin(STU.t*4)*3;
+    if(g2){ const gw=54, gh=gw*g2.height/g2.width; ctx.drawImage(g2,STU.pickup.x-gw/2,STU.pickup.y-gh/2+bob,gw,gh); }
+    ctx.font='bold 10px "Courier New"'; ctx.textAlign='center'; ctx.fillStyle='#ff7847'; ctx.fillText('AK-47',STU.pickup.x,STU.pickup.y+26+bob); }
+  STU.dummies.forEach(d=>{ if(!d.alive)return; const im=IMG.manblue;
+    ctx.strokeStyle='#ff3b5c'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(d.x,d.y-28,30,0,Math.PI*2); ctx.stroke();
+    if(im){ const h=60,w=h*im.width/im.height; ctx.drawImage(im,d.x-w/2,d.y-h,w,h); }
+    ctx.fillStyle='#101c30'; ctx.fillRect(d.x-18,d.y-72,36,6); ctx.fillStyle='#3dff73'; ctx.fillRect(d.x-17,d.y-71,34*Math.max(0,d.hp/33),4); });
+  STU.bullets.forEach(b=>{ ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(Math.atan2(b.vy,b.vx)); ctx.fillStyle='#fff3b0'; ctx.fillRect(-7,-2,12,3); ctx.restore(); });
+  { const im=IMG.hero, x=STU.px, y=STU.py;
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x,y+4,18,5,0,0,Math.PI*2); ctx.fill();
+    if(STU.hidden)ctx.globalAlpha=.45;
+    if(im){ const h=62,w=h*im.width/im.height; ctx.save(); ctx.translate(x,y); ctx.scale(Math.cos(STU.aim)<0?-1:1,1); ctx.drawImage(im,-w/2,-h,w,h); ctx.restore(); }
+    const g2=GUNR[STU.weapon];
+    if(g2){ ctx.save(); ctx.translate(x,y-28); ctx.rotate(STU.aim); if(Math.cos(STU.aim)<0)ctx.scale(1,-1); const gw=52, gh=gw*g2.height/g2.width; ctx.drawImage(g2,6,-gh/2,gw,gh); ctx.restore(); }
+    ctx.globalAlpha=1;
+    ctx.font='bold 10px "Courier New"'; ctx.textAlign='center'; ctx.fillStyle='#3dff73'; ctx.fillText('YOU',x,y-70);
+    if(STU.hidden){ ctx.fillStyle='#b6ff9e'; ctx.fillText('🌿 HIDDEN',x,y-84); } }
+  STU.parts.forEach(q=>{ ctx.globalAlpha=Math.max(0,1-q.t/q.life); ctx.fillStyle=q.col; ctx.fillRect(q.x-q.size/2,q.y-q.size/2,q.size,q.size); });
+  ctx.globalAlpha=1;
+  ctx.restore();
+  if(T){ const sx=T.x-STU.camx+VW/2, sy=T.y-STU.camy+VH/2;
+    if(sx<40||sx>VW-40||sy<40||sy>VH-40){ const a=Math.atan2(sy-VH/2,sx-VW/2);
+      const ax=VW/2+Math.cos(a)*(Math.min(VW,VH)/2-46), ay=VH/2+Math.sin(a)*(Math.min(VW,VH)/2-46);
+      ctx.save(); ctx.translate(ax,ay); ctx.rotate(a); ctx.fillStyle='#ffd52e';
+      ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-10,-10); ctx.lineTo(-10,10); ctx.fill(); ctx.restore(); } }
 }
 loadSprites(()=>{ toMenu(); requestAnimationFrame(frame); });
 </script>
