@@ -66,6 +66,7 @@ const WEAPONS={
   lmg:{dmg:9,rate:.057,mag:90,reload:2,speed:1420,spread:.05,pellets:1,range:960},
   rpg:{dmg:20,rate:.95,mag:4,reload:1.8,speed:820,spread:.006,pellets:1,range:1050,explosive:true,blast:104},
 };
+const WBLOOM={pistol:.006,shotgun:.02,m4:.005,ak:.008,lmg:.007,uzi:.006,rpg:.03};
 const FALLOFF={pistol:[430,.55],uzi:[300,.5],shotgun:[165,.3],m4:[580,.6],ak:[540,.55],lmg:[560,.55],rpg:[1e9,1]};
 const BOTNAMES=['SHADOWX','NOSCOPE','VIPER99','PIXELKID','GHOST07','TURBOFOX','MADMAX','SNIPEZ','LOOTLORD','CLUTCH','RAZOR','ONYX','FROST','HAVOC','JUMPER','NOVA','ZERO','RUBY','COBRA','ECHO','VEX'];
 const COLORS=['#ff5c7a','#ffb02e','#39a7ff','#c05cff','#3dff73','#ff7847','#4de8e0','#f2f2f2','#9dff57','#ff8ad8','#ffd52e','#6fc4ff'];
@@ -108,7 +109,7 @@ function collide(obs,f){
 function distSeg(px,py,x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1, L=dx*dx+dy*dy||1; let t=((px-x1)*dx+(py-y1)*dy)/L; t=clamp(t,0,1); return Math.hypot(px-(x1+dx*t),py-(y1+dy*t)); }
 function losBlocked(obs,x1,y1,x2,y2){ const d=Math.hypot(x2-x1,y2-y1), st=Math.max(1,d/38|0); for(let i=1;i<st;i++){ const t=i/st; if(pointBlocked(obs,x1+(x2-x1)*t,y1+(y2-y1)*t,4))return true; } return false; }
 function openCrate(m,f,cr){ cr.open=true; f.crateCD=1; const key=rollForTier(cr.tier);
-  m.pickups.push({kind:'gun',wkey:key,x:cr.x+rnd(-8,8),y:cr.y+18,vx:rnd(-70,70),vy:rnd(30,90),life:60,delay:1.5});
+  m.pending.push({t:1.45,wkey:key,x:cr.x,y:cr.y+18,name:f.name}); // lands when the roll animation ends
   mEvent(m,{ev:'loot',name:f.name,wkey:key}); }
 function rollForTier(tier){ const r=Math.random();
   if(tier==='Neon'){ if(r<.07)return 'rpg'; if(r<.27)return 'lmg'; return choice(['ak','m4']); }
@@ -162,7 +163,7 @@ function startMatch(humans){
   const id='m'+(matchSeq++);
   const {obs,bushes}=buildObstacles();
   const m={id,players:new Map(),bullets:[],pickups:[],crates:[],obs,bushes,phase:'countdown',t:3.2,tickN:0,
-    zone:{x:C.x,y:C.y,r:C.r,fx:C.x,fy:C.y,fr:C.r,tx:C.x,ty:C.y,tr:C.r,phase:0,wait:26,shrinking:false,prog:0},events:[]};
+    zone:{x:C.x,y:C.y,r:C.r,fx:C.x,fy:C.y,fr:C.r,tx:C.x,ty:C.y,tr:C.r,phase:0,wait:26,shrinking:false,prog:0},events:[],pending:[]};
   const total=Math.max(8,humans.length);
   const pads=[]; for(let i=0;i<total;i++){ const a=(i/total)*TAU+rnd(-.06,.06), d=rnd(2250,2620); pads.push([C.x+Math.cos(a)*d,C.y+Math.sin(a)*d]); }
   for(let i=pads.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pads[i],pads[j]]=[pads[j],pads[i]]; }
@@ -212,15 +213,15 @@ function tryFire(m,f){
   if(f.ammos[f.slot]<=0){ startReload(f); return; }
   f.cool=wp.rate; f.ammos[f.slot]--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1);
-  f.recoilA=(f.recoilA||0)+rnd(-1,1)*(wp.kick||2)*(f.pinpoint?0:.007+moveF*.024);
-  const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38;
-  const spread=f.pinpoint?0:wp.spread+f.bloom+moveF*moveF*.05;
+  const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38; // f.aim already includes the shooter's visible recoil (sent by the client)
+  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.062 : wp.spread+f.bloom+moveF*.03); // solo's formula
   for(let p=0;p<wp.pellets;p++){
-    const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-.015,.015):eff+rnd(-spread,spread);
+    const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.014+moveF*.02),.014+moveF*.02):eff+rnd(-spread,spread);
     m.bullets.push({x:mx,y:my,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg,owner:f,travel:0,wkey:key,explosive:!!wp.explosive,life:wp.range/wp.speed});
     if(m.bullets.length>240)m.bullets.shift();
   }
-  f.bloom=Math.min(.07,f.bloom+(wp.bloom||.006)*(1+moveF*1.6));
+  if(f.pinpoint)f.bloom=0; else f.bloom=Math.min(.07,f.bloom+(WBLOOM[key]||.006)*(1+moveF*1.7));
+  const push=(wp.kick||2)*9*(1+moveF*1.1); f.kvx=(f.kvx||0)-Math.cos(eff)*push; f.kvy=(f.kvy||0)-Math.sin(eff)*push; // gun shoves the shooter, like solo
   mEvent(m,{ev:'shot',wkey:key,x:mx,y:my});
   if(f.ammos[f.slot]===0)startReload(f);
 }
@@ -289,9 +290,13 @@ function tickMatch(m,dt){
     if(live&&inp.interact&&f.crateCD<=0){ let cr=null; m.crates.forEach(c2=>{ if(!c2.open&&Math.hypot(c2.x-f.x,c2.y-f.y)<80)cr=c2; });
       if(cr){ openCrate(m,f,cr); } }
     if(live&&inp.swap&&f.swapCD<=0&&f.inv.length>1){ f.slot=(f.slot+1)%f.inv.length; f.reloadT=0; f.swapCD=.35; inp.swap=false; }
+    if(live&&inp.reload){ startReload(f); inp.reload=false; }
     if(live&&inp.dash&&f.dashCD<=0){ let dx=f.vx,dy=f.vy; if(Math.hypot(dx,dy)<20){dx=Math.cos(f.aim);dy=Math.sin(f.aim);} const d=Math.hypot(dx,dy); f.dashDX=dx/d; f.dashDY=dy/d; f.dashT=.17; f.dashCD=2; inp.dash=false; }
     if(live&&Math.hypot(f.x-m.zone.x,f.y-m.zone.y)>m.zone.r){ f.zoneAcc=(f.zoneAcc||0)+dt; if(f.zoneAcc>=1){ f.zoneAcc=0; hurt(m,f,[3,5,8,12,18][Math.min(m.zone.phase,4)],null); } }
   });
+  for(let i=m.pending.length-1;i>=0;i--){ const pd=m.pending[i]; pd.t-=dt;
+    if(pd.t<=0){ m.pickups.push({kind:'gun',wkey:pd.wkey,x:pd.x+rnd(-8,8),y:pd.y,vx:rnd(-70,70),vy:rnd(30,90),life:60,delay:0});
+      mEvent(m,{ev:'landed',name:pd.name,wkey:pd.wkey,x:Math.round(pd.x),y:Math.round(pd.y)}); m.pending.splice(i,1); } }
   // bullets
   for(let i=m.bullets.length-1;i>=0;i--){ const b=m.bullets[i]; let dead=false;
     for(let st=0;st<2&&!dead;st++){ b.x+=b.vx*dt/2; b.y+=b.vy*dt/2; b.travel+=Math.hypot(b.vx,b.vy)*dt/2;
@@ -350,7 +355,7 @@ function handleMsg(c,msg){
     p.input.mx=clamp(+i.mx||0,-1,1); p.input.my=clamp(+i.my||0,-1,1);
     if(typeof i.aim==='number'&&isFinite(i.aim))p.input.aim=i.aim;
     p.input.fire=!!i.fire; if(i.dash)p.input.dash=true; if(i.interact)p.input.interact=true; else if(i.interact===false)p.input.interact=false;
-    if(i.swap)p.input.swap=true;
+    if(i.swap)p.input.swap=true; if(i.reload)p.input.reload=true;
     if(typeof i.pinpoint==='boolean')p.pinpoint=i.pinpoint;
   }
 }
