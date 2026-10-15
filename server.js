@@ -214,13 +214,13 @@ function tryFire(m,f){
   f.cool=wp.rate; f.ammos[f.slot]--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1);
   const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38; // f.aim already includes the shooter's visible recoil (sent by the client)
-  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.062 : wp.spread+f.bloom+moveF*.03); // solo's formula
+  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.088 : wp.spread+f.bloom+moveF*.03); // solo's formula
   for(let p=0;p<wp.pellets;p++){
     const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.014+moveF*.02),.014+moveF*.02):eff+rnd(-spread,spread);
     m.bullets.push({x:mx,y:my,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg,owner:f,travel:0,wkey:key,explosive:!!wp.explosive,life:wp.range/wp.speed});
     if(m.bullets.length>240)m.bullets.shift();
   }
-  if(f.pinpoint)f.bloom=0; else f.bloom=Math.min(.07,f.bloom+(WBLOOM[key]||.006)*(1+moveF*1.7));
+  if(f.pinpoint)f.bloom=0; else f.bloom=Math.min(.085,f.bloom+(WBLOOM[key]||.006)*(1+moveF*2.2));
   const push=(wp.kick||2)*9*(1+moveF*1.1); f.kvx=(f.kvx||0)-Math.cos(eff)*push; f.kvy=(f.kvy||0)-Math.sin(eff)*push; // gun shoves the shooter, like solo
   mEvent(m,{ev:'shot',wkey:key,x:mx,y:my});
   if(f.ammos[f.slot]===0)startReload(f);
@@ -282,7 +282,7 @@ function tickMatch(m,dt){
     f.inBush=m.bushes.some(b=>Math.hypot(b.x-f.x,b.y-f.y)<b.r);
     f.hidden=f.inBush&&f.revealT<=0;
     f.cool-=dt; f.dashCD-=dt; f.crateCD-=dt; f.swapCD-=dt; f.gunCD-=dt; f.revealT-=dt; f.lastHurt+=dt;
-    f.bloom=Math.max(0,f.bloom-dt*(Math.hypot(f.vx,f.vy)>50?.045:.13));
+    f.bloom=Math.max(0,f.bloom-dt*(Math.hypot(f.vx,f.vy)>50?.038:.13));
     f.recoilA*=Math.pow(.000001,dt);
     if(f.lastHurt>6&&f.hp<75)f.hp=Math.min(75,f.hp+5*dt);
     if(f.reloadT>0){ f.reloadT-=dt; if(f.reloadT<=0)f.ammos[f.slot]=WEAPONS[f.inv[f.slot]].mag; }
@@ -319,7 +319,7 @@ function tickMatch(m,dt){
     if(taken||pk.life<=0)m.pickups.splice(i,1);
   }
   // snapshots at ~15Hz, personalised (hidden enemies' positions are withheld)
-  if(m.tickN%2===0){
+  {
     m.players.forEach(viewer=>{
       if(!viewer.client)return;
       const snap={type:'snap',phase:m.phase,t:Math.max(0,m.t),zone:{x:m.zone.x,y:m.zone.y,r:m.zone.r,shrinking:m.zone.shrinking,phase:m.zone.phase,wait:Math.max(0,m.zone.wait)},alive:aliveCount(m),

@@ -599,12 +599,12 @@ function tryFire(f){
   f.cool=wp.rate; f.ammo--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1); // 0 = planted, 1 = full sprint
   // recoil kicks the aim itself — much harder while moving
-  f.recoilA=(f.recoilA||0)+rnd(-1,1)*wp.kick*(f.isPlayer?(CH.pinpoint?0:.007+moveF*.024):.004);
+  f.recoilA=(f.recoilA||0)+rnd(-1,1)*wp.kick*(f.isPlayer?(CH.pinpoint?0:.011+moveF*.038):.004);
   const effAim=f.aim+f.recoilA;
   const m=muzzleOf(f);
-  const spread=(f.isPlayer&&CH.pinpoint)?0 : f.isPlayer ? wp.spread*.35+f.bloom+moveF*moveF*.062 : wp.spread+f.bloom+moveF*.03;
+  const spread=(f.isPlayer&&CH.pinpoint)?0 : f.isPlayer ? wp.spread*.35+f.bloom+moveF*moveF*.088 : wp.spread+f.bloom+moveF*.03;
   for(let p=0;p<wp.pellets;p++){
-    const a=wp.pellets>1 ? effAim+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.014+moveF*.02),.014+moveF*.02) : effAim+rnd(-spread,spread);
+    const a=wp.pellets>1 ? effAim+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.018+moveF*.028),.018+moveF*.028) : effAim+rnd(-spread,spread);
     const crit=!wp.explosive&&Math.random()<.08;
     bullets.push({x:m.x,y:m.y,px:m.x,py:m.y,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg*(crit?1.5:1),crit,travel:0,owner:f,life:wp.range/wp.speed,wkey:f.weapon,knock:wp.kick,explosive:!!wp.explosive,blast:wp.blast||0});
     if(bullets.length>260)bullets.shift();
@@ -614,11 +614,11 @@ function tryFire(f){
   if(tracers.length>60)tracers.shift();
   spawnParts(m.x,m.y,wp.pellets>1?6:2,['#ffd52e','#ff9f2e','#fff'],170,.13,3);
   casing(m.gx,m.gy,effAim);
-  f.bloom=(f.isPlayer&&CH.pinpoint)?0:Math.min(.07,f.bloom+wp.bloom*(1+moveF*1.7)); // spray builds way faster on the move
+  f.bloom=(f.isPlayer&&CH.pinpoint)?0:Math.min(.085,f.bloom+wp.bloom*(1+moveF*2.2)); // spray builds way faster on the move
   f.kickBack=1;
   const push=wp.kick*9*(1+moveF*1.1);
   f.vx-=Math.cos(effAim)*push; f.vy-=Math.sin(effAim)*push;
-  if(f.isPlayer)addTrauma(wp.shake*(.16+moveF*.22)); // camera kicks harder while moving too
+  if(f.isPlayer)addTrauma(wp.shake*(.2+moveF*.3)); // camera kicks harder while moving too
   (SFX[f.weapon]||SFX.pistol)();
   if(f.ammo===0)startReload(f);
 }
@@ -835,7 +835,7 @@ function moveFighter(f,dt,mx,my){
   const spd=Math.hypot(f.vx,f.vy);
   if(spd>26){ f.walk+=dt*spd*.055; if(Math.random()<.1)parts.push({x:f.x+rnd(-8,8),y:f.y-1,vx:rnd(-16,16),vy:rnd(-30,-8),life:.3,max:.3,c:'#7c5a36',s:3,grav:0}); }
   f.cool-=dt; f.flash-=dt; f.dashCD-=dt; f.lastHitT-=dt;
-  f.bloom=Math.max(0,f.bloom-dt*(Math.hypot(f.vx,f.vy)>50?.045:.13));
+  f.bloom=Math.max(0,f.bloom-dt*(Math.hypot(f.vx,f.vy)>50?.038:.13));
   f.recoilA=(f.recoilA||0)*Math.pow(.000001,dt); if(Math.abs(f.recoilA)<.0006)f.recoilA=0;
   f.kickBack=Math.max(0,f.kickBack-dt*9); f.revealT-=dt; f.swapT-=dt;
   f.lastHurtT+=dt;
