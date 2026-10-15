@@ -66,6 +66,10 @@
  #confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
  .kbd{display:inline-block;background:#1b3050;border:2px solid #3f6396;border-bottom-width:4px;padding:1px 8px;margin:1px;font-size:12px;color:#fff}
  #tutOv{z-index:90}
+ #langOv{z-index:96}
+ .langGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+ .langBtn{font-family:inherit;font-weight:bold;font-size:16px;letter-spacing:.06em;cursor:pointer;color:var(--ink);background:#0a1425;border:3px solid var(--line);padding:14px 8px;box-shadow:0 5px 0 rgba(0,0,0,.5)}
+ .langBtn:hover{border-color:var(--gold);background:#12233f}
  .tutArt{height:118px;display:flex;align-items:center;justify-content:center;font-size:64px;border:3px solid var(--line);margin-bottom:12px;text-shadow:4px 4px 0 rgba(0,0,0,.35)}
  .dot{display:inline-block;width:11px;height:11px;background:#22354f;margin:0 3px;border:2px solid #3f6396}
  .dot.on{background:var(--gold)}
@@ -81,7 +85,7 @@
  #tutObj{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--gold);padding:10px 18px;text-align:center;max-width:min(620px,94vw);box-shadow:0 6px 0 rgba(0,0,0,.5)}
  #tutSteps{position:absolute;top:14px;left:12px;background:var(--panel);border:3px solid var(--line);padding:10px 12px;font-size:11.5px;line-height:2}
  #tutSteps .done{color:var(--green)} #tutSteps .cur{color:var(--gold)}
- #tutSkip{position:absolute;bottom:16px;right:16px;pointer-events:auto}
+ #tutSkip2{position:absolute;bottom:16px;right:16px;pointer-events:auto}
  .stick{position:fixed;width:112px;height:112px;border:3px solid rgba(143,179,217,.5);background:rgba(10,20,38,.3);border-radius:50%;z-index:25;display:none}
  .stick .nub{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(234,246,255,.35)}
 </style>
@@ -95,7 +99,7 @@
     <div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px">HP</span><div id="hpWrap" style="flex:1"><div id="hpBar"></div></div><span id="hpTxt" class="pix">100</span></div>
     <div style="display:flex;gap:10px;align-items:center;margin-top:7px"><img id="hudGun" style="width:70px;height:32px;object-fit:contain;image-rendering:pixelated">
       <div><div id="gunName" class="pix" style="font-size:12px">P9 PISTOL</div><div id="gunSlots" style="font-size:10px;color:var(--dim)"></div></div>
-      <div style="margin-left:auto;text-align:right"><div id="ammo" class="pix" style="font-size:19px">14</div><div style="font-size:9px;color:var(--dim)">AMMO ∞</div></div></div>
+      <div style="margin-left:auto;text-align:right"><div id="ammo" class="pix" style="font-size:19px">14</div><div style="font-size:9px;color:var(--dim)" data-i18n="ammo">AMMO ∞</div></div></div>
   </div>
   <div id="hudTop">
     <div class="pill"><div class="n pix" id="aliveN">8</div><div class="l">ALIVE</div></div>
@@ -120,7 +124,7 @@
 <div class="overlay on" id="lobby">
   <div class="panel" style="width:min(880px,97vw)">
     <div class="logo pix">PIXEL <span class="r">ROY</span><span class="y">ALE</span></div>
-    <div class="tag">🌐 ONLINE · PUBLIC MATCHMAKING</div>
+    <div class="tag" data-i18n="tagLine">🌐 ONLINE · PUBLIC MATCHMAKING</div>
     <div class="lay">
       <div class="lobbyNav">
         <div class="sect">★ MAIN MENU ★</div>
@@ -132,7 +136,7 @@
         <button class="btn alt small navBtn" data-view="settings">⚙ SETTINGS</button>
         <a class="btn alt small" href="index.html" style="text-decoration:none;text-align:center">🤖 SOLO VS BOTS</a>
         <div style="text-align:center;margin-top:6px">
-          <div class="tiny" style="letter-spacing:.2em">CALLSIGN</div>
+          <div class="tiny" style="letter-spacing:.2em" data-i18n="callsign">CALLSIGN</div>
           <input id="nameIn" maxlength="10" placeholder="YOUR CALLSIGN" autocomplete="off" style="width:100%">
           <div style="margin-top:8px"><span class="coinPill pix">🪙 <span id="coinAmt">0</span> COINS</span></div>
           <div style="margin-top:6px"><span class="coinPill pix" id="lvlPill" style="background:#1b1440;border-color:#5b3df0;color:#cdb8ff">⭐ LV 1</span></div>
@@ -143,14 +147,14 @@
       <div>
         <div class="view on" id="view-play">
           <div class="sect">★ ONLINE ★</div>
-          <div class="tiny">Public lobbies of <b>8 fighters</b>. Hit QUICK PLAY and you'll drop into the next match — lobbies launch as soon as they're full, or automatically after 20 seconds.</div>
+          <div class="tiny" data-i18n="playDesc">Public lobbies of <b>8 fighters</b>. Hit QUICK PLAY and you'll drop into the next match — lobbies launch as soon as they're full, or automatically after 20 seconds.</div>
           <div id="menuHero" style="margin:12px 0"></div>
           <button class="btn" id="playOnlineBtn" disabled>🌐 QUICK PLAY</button>
           <div class="tiny" id="menuStats"></div>
         </div>
         <div class="view" id="view-shop">
-          <div class="sect">🛒 SHOP — COMING SOON</div>
-          <div class="tiny">Cosmetics only. Earn 🪙 coins in matches — your balance is saved.</div>
+          <div class="sect" data-i18n="shopSect">🛒 SHOP — COMING SOON</div>
+          <div class="tiny" data-i18n="shopDesc">Cosmetics only. Earn 🪙 coins in matches — your balance is saved.</div>
           <div class="shopGrid">
             <div class="shopItem">🟡<br><b>GOLDEN HERO</b><br><span class="tiny">SOON</span></div>
             <div class="shopItem">🌈<br><b>NEON TRAIL</b><br><span class="tiny">SOON</span></div>
@@ -159,33 +163,45 @@
           </div>
         </div>
         <div class="view" id="view-scores">
-          <div class="sect">🏆 YOUR RECORD</div>
+          <div class="sect" data-i18n="scoresSect">🏆 YOUR RECORD</div>
           <div class="tiny" id="scoreBody">No matches yet — jump into Quick Play!</div>
         </div>
         <div class="view" id="view-how">
-          <div class="sect">🎮 HOW TO PLAY</div>
-          <div class="tiny" style="line-height:2">
+          <div class="sect" data-i18n="howSect">🎮 HOW TO PLAY</div>
+          <div class="tiny" style="line-height:2" data-i18n="howText">
             🖱 <b>WASD</b> move · <b>Mouse</b> aim · <b>Click</b> fire<br>
             ⚡ <b>Shift / Space</b> dash · <b>E</b> open crates · <b>Q</b> swap weapon<br>
             🎯 <b>C</b> toggles Pinpoint Mode (exact crosshair, even moving)<br>
             📱 Touch: left stick move, right stick aim + fire<br>
             🌿 Hide in bushes · 🟣 stay in the circle · 👑 last one standing wins!
           </div>
-          <button class="btn alt small" id="tutReplay">📖 REPLAY TUTORIAL</button>
+          <button class="btn alt small" id="tutReplay" data-i18n="tutReplay">📖 REPLAY TUTORIAL</button>
         </div>
         <div class="view" id="view-banner">
-          <div class="sect">🎌 YOUR BANNER</div>
-          <div class="tiny">Your banner flies on the victory screen and your profile. Pick the one that fits your legend — change it anytime.</div>
+          <div class="sect" data-i18n="bannerSect">🎌 YOUR BANNER</div>
+          <div class="tiny" data-i18n="bannerDesc">Your banner flies on the victory screen and your profile. Pick the one that fits your legend — change it anytime.</div>
           <div class="bannerGrid" id="bannerGridMenu"></div>
         </div>
         <div class="view" id="view-settings">
-          <div class="sect">⚙ SETTINGS · CROSSHAIR</div>
-          <div class="tiny">Saved on this device and shared with solo mode.</div>
+          <div class="sect" data-i18n="langLabel">🌍 LANGUAGE</div>
+          <select id="langSel" style="font-family:inherit;font-weight:bold;font-size:14px;background:#0a1425;color:var(--ink);border:3px solid var(--line);padding:8px;width:min(280px,80vw)">
+            <option value="en">English</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+          </select>
+          <div class="tiny" data-i18n="langNote">Language applies to the menus, tutorial and matchmaking. It saves automatically.</div>
+          <div class="sect" data-i18n="settingsSect">⚙ SETTINGS · CROSSHAIR</div>
+          <div class="tiny" data-i18n="crossNote">Saved on this device and shared with solo mode.</div>
           <canvas id="chPrev" width="120" height="80" style="background:#223a24;border:3px solid var(--line);display:block;margin:10px auto"></canvas>
-          <div class="tiny">COLOR <input type="color" id="chColor" value="#3dff73" style="width:54px;padding:2px;vertical-align:middle"></div>
-          <label class="tiny"><input type="checkbox" id="chDyn" style="width:auto"> DYNAMIC SPREAD (grows while moving)</label><br>
-          <label class="tiny"><input type="checkbox" id="chPin" style="width:auto"> 🎯 PINPOINT MODE — shots hit the exact crosshair</label><br>
-          <button class="btn alt small" id="chReset">RESET CROSSHAIR</button>
+          <div class="tiny"><span data-i18n="colorWord">COLOR</span> <input type="color" id="chColor" value="#3dff73" style="width:54px;padding:2px;vertical-align:middle"></div>
+          <label class="tiny"><input type="checkbox" id="chDyn" style="width:auto"> <span data-i18n="dynLabel">DYNAMIC SPREAD (grows while moving)</span></label><br>
+          <label class="tiny"><input type="checkbox" id="chPin" style="width:auto"> <span data-i18n="pinLabel">🎯 PINPOINT MODE — shots hit the exact crosshair</span></label><br>
+          <button class="btn alt small" id="chReset" data-i18n="resetCross">RESET CROSSHAIR</button>
         </div>
       </div>
     </div>
@@ -196,18 +212,26 @@
   <div class="panel">
     <div class="sect">🌐 PUBLIC MATCHMAKING</div>
     <div class="radar"></div>
-    <div class="pix" id="mmTitle" style="font-size:20px;color:var(--gold)">SEARCHING FOR PLAYERS…</div>
+    <div class="pix" id="mmTitle" style="font-size:20px;color:var(--gold)" data-i18n="mmSearching">SEARCHING FOR PLAYERS…</div>
     <div class="slots" id="mmSlots"></div>
     <div class="mmbar"><div id="mmFill" style="width:0%"></div></div>
     <div class="tiny" id="mmInfo">Looking for fighters…</div>
     <div class="pix" id="mmCount" style="font-size:15px;margin-top:6px"></div>
     <button class="btn" id="startNowBtn">▶ START MATCH</button><br>
     <button class="btn alt small" id="cancelQBtn">✖ CANCEL</button>
-    <div class="tiny">Empty slots are filled with bots when the timer ends — you always get a full 8-fighter match.</div>
+    <div class="tiny" data-i18n="mmNote">Matches launch at 8 fighters, or automatically after 20 seconds.</div>
   </div>
 </div>
 
 <div id="confetti"></div>
+<div class="overlay" id="langOv">
+  <div class="panel" style="width:min(560px,96vw)">
+    <div style="font-size:44px">🌍</div>
+    <div class="logo pix" id="langFirstTitle" style="font-size:30px">CHOOSE YOUR<br>LANGUAGE</div>
+    <div class="langGrid" id="langGrid"></div>
+    <div class="tiny" id="langFirstNote" style="margin-top:12px">You can change this anytime later in ⚙ SETTINGS.</div>
+  </div>
+</div>
 <div class="overlay" id="tutOv">
   <div class="panel" style="width:min(600px,96vw)">
     <div class="sect" id="tutStep" style="text-align:center">★ TUTORIAL ★</div>
@@ -215,8 +239,8 @@
     <div class="pix" id="tutTitle" style="font-size:21px;color:var(--gold)"></div>
     <div class="tiny" id="tutText" style="min-height:66px;font-size:12.5px;line-height:1.8;margin-top:6px"></div>
     <div id="tutPick" style="display:none">
-      <div class="pix" style="font-size:16px;color:var(--gold)">🎌 CHOOSE YOUR BANNER</div>
-      <div class="tiny">This banner represents you on the victory screen. You can change it later in the BANNER tab.</div>
+      <div class="pix" style="font-size:16px;color:var(--gold)" data-i18n="tutBannerT">🎌 CHOOSE YOUR BANNER</div>
+      <div class="tiny" data-i18n="tutBannerD">This banner represents you on the victory screen. You can change it later in the BANNER tab.</div>
       <div class="bannerGrid" id="bannerGridTut"></div>
     </div>
     <div style="margin:12px 0 4px"><span id="tutDots"></span></div>
@@ -317,10 +341,10 @@ document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>{ audio(); showVie
 refreshProfile();
 { const hr=$('menuHero'); ['hero','woman','manblue'].forEach(k=>{ const i=document.createElement('img'); i.src=ASSETS[k]; i.style.height='74px'; i.style.imageRendering='pixelated'; hr.appendChild(i); }); }
 function renderScores(){ let h=''; try{ const st=JSON.parse(localStorage.getItem('pr_stats')||'{"games":0,"wins":0,"kills":0}');
-    h='Lifetime — Matches <b>'+st.games+'</b> · Wins <b>'+st.wins+'</b> · Kills <b>'+st.kills+'</b><br><br>';
+    h=t('wMatches')+': <b>'+st.games+'</b> · '+t('wWins')+': <b>'+st.wins+'</b> · '+t('wKills')+': <b>'+st.kills+'</b><br><br>';
     const sc=JSON.parse(localStorage.getItem('pixelRoyaleScores_v1')||'[]');
     if(sc.length)h+='<table><tr><th>#</th><th>NAME</th><th>SCORE</th><th>KILLS</th></tr>'+sc.slice(0,5).map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+r.name+'</td><td>'+r.score+'</td><td>'+r.kills+'</td></tr>').join('')+'</table>';
-  }catch(e){} $('scoreBody').innerHTML=h||'No matches yet — jump into Quick Play!'; }
+  }catch(e){} $('scoreBody').innerHTML=h||t('noMatches'); }
 /* crosshair settings (shared pr_cross config) */
 function drawPrev(){ const cv=$('chPrev'); if(!cv)return; const g=cv.getContext('2d'); g.clearRect(0,0,120,80); g.fillStyle='#223a24'; g.fillRect(0,0,120,80);
   g.strokeStyle=CH.color; g.lineWidth=2; const gap=CH.gap,maxL=CH.len,cx=60,cy=40;
@@ -354,6 +378,35 @@ function queueUp(){
   clearTimeout(queueWatchdog);
   queueWatchdog=setTimeout(()=>{ if(!inMatch&&ws&&ws.readyState===1){ ws.send(JSON.stringify({type:'start_now'})); $('mmInfo').textContent='🚀 Launching match…'; } },26000); // safety net: never spin forever
 }
+
+/* ---------- languages ---------- */
+const I18N={
+en:{tagLine:"🌐 ONLINE · PUBLIC MATCHMAKING",navPlay:"▶ PLAY",navShop:"🛒 SHOP",soon:"SOON",navScores:"🏆 LEADERBOARD",navHow:"🎮 HOW TO PLAY",navBanner:"🎌 BANNER",navSettings:"⚙ SETTINGS",navSolo:"🤖 SOLO VS BOTS",soloBtn:"🤖 SOLO",callsign:"CALLSIGN",namePh:"YOUR CALLSIGN",playDesc:"Public lobbies of <b>8 fighters</b>. Hit QUICK PLAY and you'll drop into the next match — lobbies launch as soon as they're full, or automatically after 20 seconds.",quickPlay:"🌐 QUICK PLAY",shopSect:"🛒 SHOP — COMING SOON",shopDesc:"Cosmetics only. Earn 🪙 coins in matches — your balance is saved.",scoresSect:"🏆 YOUR RECORD",noMatches:"No matches yet — jump into Quick Play!",howSect:"🎮 HOW TO PLAY",howText:"🖱 <b>WASD</b> move · <b>Mouse</b> aim · <b>Click</b> fire<br>⚡ <b>Shift / Space</b> dash · <b>E</b> open crates · <b>Q</b> swap weapon<br>🎯 <b>C</b> toggles Pinpoint Mode<br>📱 Touch: left stick move, right stick aim + fire<br>🌿 Hide in bushes · 🟣 stay in the circle · 👑 last one standing wins!",bannerSect:"🎌 YOUR BANNER",bannerDesc:"Your banner flies on the victory screen and your profile. Pick the one that fits your legend — change it anytime.",settingsSect:"⚙ SETTINGS · CROSSHAIR",langLabel:"🌍 LANGUAGE",langNote:"Language applies to the menus, tutorial and matchmaking. It saves automatically.",crossNote:"Saved on this device and shared with solo mode.",colorWord:"COLOR",dynLabel:"DYNAMIC SPREAD (grows while moving)",pinLabel:"🎯 PINPOINT MODE — shots hit the exact crosshair",resetCross:"RESET CROSSHAIR",tutReplay:"📖 REPLAY TUTORIAL",mmSearching:"SEARCHING FOR PLAYERS…",mmFound:"PLAYERS FOUND!",mmFull:"Full lobby — launching!",mmWait:"Searching for fighters… match launches in {s}s",mmJoined:"JOINED",mmSlot:"SEARCHING",fightersW:"FIGHTERS",mmStart:"▶ START MATCH",mmCancel:"✖ CANCEL",mmNote:"Matches launch at 8 fighters, or automatically after 20 seconds.",playAgain:"▶ PLAY AGAIN",mainMenu:"⌂ MAIN MENU",tutBannerT:"🎌 CHOOSE YOUR BANNER",tutBannerD:"This banner represents you on the victory screen. You can change it later in the BANNER tab.",ammo:"AMMO ∞",alive:"ALIVE",killsW:"KILLS",onlineW:"ONLINE",wLevel:"Level",wMatches:"Matches",wWins:"Wins",wKills:"Kills",wPlayer:"PLAYER",wDmg:"Damage",wPlace:"Placement",wPlayed:"Played",wCoins:"Coins earned",wLevelUp:"🎉 LEVEL UP!",trainingW:"TRAINING",pt0t:"① MOVE",pt1t:"② DASH",pt2t:"③ AIM & SHOOT",pt3t:"④ LOOT A CRATE",pt4t:"⑤ TAKE THE GUN",pt5t:"⑥ SWAP WEAPON",pt6t:"⑦ GO INVISIBLE",pt7t:"⑧ SURVIVE THE CIRCLE",pt0x:"Use <b>WASD</b> (or the left stick) to run into the glowing ring.",pt1x:"Press <b>SHIFT / SPACE</b> to dash into the far ring — great for dodging bullets.",pt2x:"Aim with the <b>mouse</b>, hold <b>CLICK</b> to fire. Destroy all 3 target dummies!",pt3x:"Stand at the crate and press <b>E</b> to roll for a weapon.",pt4x:"The gun dropped on the floor — press <b>E</b> to take it.",pt5x:"You carry 2 guns now. Press <b>Q</b> (or scroll) to swap.",pt6x:"Stand inside the bush and stay hidden for 1 second — enemies can't see you in there.",pt7x:"The circle is closing! Get inside the safe ring and stay there.",guideSetT:"⚙ FIND THE SETTINGS",guideSetX:"From the main menu, tap <b>⚙ SETTINGS</b> on the left. There you can change the <b>language 🌍</b>, build your crosshair, and toggle Pinpoint Mode. Everything saves automatically.",guideOnT:"🌐 PLAY ONLINE",guideOnX:"Ready for real fighters? Main menu → <b>▶ PLAY</b> → type your callsign → <b>🌐 QUICK PLAY</b>. Matchmaking finds your lobby (max 20s) — or hit <b>START MATCH</b> to drop in instantly. Good luck!"},
+"zh-TW":{tagLine:"🌐 線上 · 公開配對",navPlay:"▶ 遊玩",navShop:"🛒 商店",soon:"即將推出",navScores:"🏆 排行榜",navHow:"🎮 玩法教學",navBanner:"🎌 旗幟",navSettings:"⚙ 設定",navSolo:"🤖 單人對戰機器人",soloBtn:"🤖 單人",callsign:"代號",namePh:"你的代號",playDesc:"<b>8 名戰士</b>的公開大廳。按快速遊玩即可加入下一場 — 大廳滿人或 20 秒後自動開始。",quickPlay:"🌐 快速遊玩",shopSect:"🛒 商店 — 即將推出",shopDesc:"只有外觀道具。在比賽中賺取 🪙 金幣 — 餘額會保存。",scoresSect:"🏆 你的紀錄",noMatches:"尚無比賽紀錄 — 快來快速遊玩！",howSect:"🎮 玩法教學",howText:"🖱 <b>WASD</b> 移動 · <b>滑鼠</b> 瞄準 · <b>點擊</b> 射擊<br>⚡ <b>Shift / 空格</b> 衝刺 · <b>E</b> 開箱 · <b>Q</b> 換槍<br>🎯 <b>C</b> 切換精準模式<br>📱 觸控：左搖桿移動，右搖桿瞄準+射擊<br>🌿 躲進草叢 · 🟣 留在圈內 · 👑 活到最後！",bannerSect:"🎌 你的旗幟",bannerDesc:"你的旗幟會出現在勝利畫面和個人資料上。選一個最適合你的 — 隨時可更換。",settingsSect:"⚙ 設定 · 準星",langLabel:"🌍 語言",langNote:"語言會套用到選單、教學和配對畫面，並自動保存。",crossNote:"保存在此裝置，並與單人模式共用。",colorWord:"顏色",dynLabel:"動態擴散（移動時擴大）",pinLabel:"🎯 精準模式 — 子彈命中準星正中心",resetCross:"重設準星",tutReplay:"📖 重玩教學",mmSearching:"正在尋找玩家…",mmFound:"找到玩家了！",mmFull:"大廳已滿 — 開始！",mmWait:"正在尋找戰士… 比賽將在 {s} 秒後開始",mmJoined:"已加入",mmSlot:"搜尋中",fightersW:"名戰士",mmStart:"▶ 開始比賽",mmCancel:"✖ 取消",mmNote:"大廳滿 8 人或 20 秒後自動開始比賽。",playAgain:"▶ 再來一場",mainMenu:"⌂ 主選單",tutBannerT:"🎌 選擇你的旗幟",tutBannerD:"這面旗幟會在勝利畫面代表你，之後可在「旗幟」分頁更換。",ammo:"彈藥 ∞",alive:"存活",killsW:"擊殺",onlineW:"線上",wLevel:"等級",wMatches:"場次",wWins:"勝利",wKills:"擊殺",wPlayer:"玩家",wDmg:"傷害",wPlace:"名次",wPlayed:"參與",wCoins:"獲得金幣",wLevelUp:"🎉 升級！",trainingW:"訓練",pt0t:"① 移動",pt1t:"② 衝刺",pt2t:"③ 瞄準與射擊",pt3t:"④ 開寶箱",pt4t:"⑤ 撿起槍",pt5t:"⑥ 換武器",pt6t:"⑦ 隱形",pt7t:"⑧ 在圈內生存",pt0x:"用 <b>WASD</b>（或左搖桿）跑進發光的圈。",pt1x:"按 <b>SHIFT / 空格</b> 衝刺進遠處的圈 — 躲子彈很好用。",pt2x:"用<b>滑鼠</b>瞄準，按住<b>點擊</b>射擊。打掉 3 個靶子！",pt3x:"站在箱子旁按 <b>E</b> 抽武器。",pt4x:"槍掉在地上了 — 按 <b>E</b> 撿起來。",pt5x:"你現在有 2 把槍。按 <b>Q</b>（或滾輪）換槍。",pt6x:"站在草叢裡隱藏 1 秒 — 敵人看不到你。",pt7x:"毒圈在縮小！進到安全圈裡待著。",guideSetT:"⚙ 找到設定",guideSetX:"在主選單點左邊的 <b>⚙ 設定</b>。在那裡可以改<b>語言 🌍</b>、自訂準星、開關精準模式，全部自動保存。",guideOnT:"🌐 線上遊玩",guideOnX:"準備好跟真人打了嗎？主選單 → <b>▶ 遊玩</b> → 輸入代號 → <b>🌐 快速遊玩</b>。配對最多 20 秒 — 也可以按<b>開始比賽</b>立刻進場。祝你好運！"},
+"zh-CN":{tagLine:"🌐 在线 · 公开匹配",navPlay:"▶ 开始游戏",navShop:"🛒 商店",soon:"即将推出",navScores:"🏆 排行榜",navHow:"🎮 玩法教学",navBanner:"🎌 旗帜",navSettings:"⚙ 设置",navSolo:"🤖 单人对战机器人",soloBtn:"🤖 单人",callsign:"代号",namePh:"你的代号",playDesc:"<b>8 名战士</b>的公开大厅。点快速游戏加入下一场 — 大厅满人或 20 秒后自动开始。",quickPlay:"🌐 快速游戏",shopSect:"🛒 商店 — 即将推出",shopDesc:"只有外观道具。在比赛中赚 🪙 金币 — 余额会保存。",scoresSect:"🏆 你的记录",noMatches:"暂无比赛记录 — 快来快速游戏！",howSect:"🎮 玩法教学",howText:"🖱 <b>WASD</b> 移动 · <b>鼠标</b> 瞄准 · <b>点击</b> 射击<br>⚡ <b>Shift / 空格</b> 冲刺 · <b>E</b> 开箱 · <b>Q</b> 换枪<br>🎯 <b>C</b> 切换精准模式<br>📱 触屏：左摇杆移动，右摇杆瞄准+射击<br>🌿 躲进草丛 · 🟣 留在圈内 · 👑 活到最后！",bannerSect:"🎌 你的旗帜",bannerDesc:"你的旗帜会出现在胜利画面和个人资料上。选一个最适合你的 — 随时可换。",settingsSect:"⚙ 设置 · 准星",langLabel:"🌍 语言",langNote:"语言会应用到菜单、教学和匹配界面，并自动保存。",crossNote:"保存在此设备，并与单人模式共用。",colorWord:"颜色",dynLabel:"动态扩散（移动时扩大）",pinLabel:"🎯 精准模式 — 子弹命中准星正中心",resetCross:"重置准星",tutReplay:"📖 重玩教学",mmSearching:"正在寻找玩家…",mmFound:"找到玩家了！",mmFull:"大厅已满 — 开始！",mmWait:"正在寻找战士… 比赛将在 {s} 秒后开始",mmJoined:"已加入",mmSlot:"搜索中",fightersW:"名战士",mmStart:"▶ 开始比赛",mmCancel:"✖ 取消",mmNote:"大厅满 8 人或 20 秒后自动开始比赛。",playAgain:"▶ 再来一场",mainMenu:"⌂ 主菜单",tutBannerT:"🎌 选择你的旗帜",tutBannerD:"这面旗帜会在胜利画面代表你，之后可在「旗帜」页更换。",ammo:"弹药 ∞",alive:"存活",killsW:"击杀",onlineW:"在线",wLevel:"等级",wMatches:"场次",wWins:"胜利",wKills:"击杀",wPlayer:"玩家",wDmg:"伤害",wPlace:"名次",wPlayed:"参与",wCoins:"获得金币",wLevelUp:"🎉 升级！",trainingW:"训练",pt0t:"① 移动",pt1t:"② 冲刺",pt2t:"③ 瞄准与射击",pt3t:"④ 开宝箱",pt4t:"⑤ 捡起枪",pt5t:"⑥ 换武器",pt6t:"⑦ 隐形",pt7t:"⑧ 在圈内生存",pt0x:"用 <b>WASD</b>（或左摇杆）跑进发光的圈。",pt1x:"按 <b>SHIFT / 空格</b> 冲刺进远处的圈 — 躲子弹很好用。",pt2x:"用<b>鼠标</b>瞄准，按住<b>点击</b>射击。打掉 3 个靶子！",pt3x:"站在箱子旁按 <b>E</b> 抽武器。",pt4x:"枪掉在地上了 — 按 <b>E</b> 捡起来。",pt5x:"你现在有 2 把枪。按 <b>Q</b>（或滚轮）换枪。",pt6x:"站在草丛里隐藏 1 秒 — 敌人看不到你。",pt7x:"毒圈在缩小！进到安全圈里待着。",guideSetT:"⚙ 找到设置",guideSetX:"在主菜单点左边的 <b>⚙ 设置</b>。在那里可以改<b>语言 🌍</b>、自定义准星、开关精准模式，全部自动保存。",guideOnT:"🌐 在线游戏",guideOnX:"准备好跟真人打了吗？主菜单 → <b>▶ 开始</b> → 输入代号 → <b>🌐 快速游戏</b>。匹配最多 20 秒 — 也可以按<b>开始比赛</b>立刻进场。祝你好运！"},
+es:{tagLine:"🌐 EN LÍNEA · EMPAREJAMIENTO PÚBLICO",navPlay:"▶ JUGAR",navShop:"🛒 TIENDA",soon:"PRONTO",navScores:"🏆 CLASIFICACIÓN",navHow:"🎮 CÓMO JUGAR",navBanner:"🎌 ESTANDARTE",navSettings:"⚙ AJUSTES",navSolo:"🤖 SOLO VS BOTS",soloBtn:"🤖 SOLO",callsign:"NOMBRE",namePh:"TU NOMBRE",playDesc:"Salas públicas de <b>8 luchadores</b>. Pulsa JUEGO RÁPIDO para entrar en la siguiente partida: la sala empieza al llenarse o a los 20 segundos.",quickPlay:"🌐 JUEGO RÁPIDO",shopSect:"🛒 TIENDA — MUY PRONTO",shopDesc:"Solo cosméticos. Gana 🪙 monedas en partidas; tu saldo se guarda.",scoresSect:"🏆 TU RÉCORD",noMatches:"Aún sin partidas — ¡entra en Juego Rápido!",howSect:"🎮 CÓMO JUGAR",howText:"🖱 <b>WASD</b> moverse · <b>Ratón</b> apuntar · <b>Clic</b> disparar<br>⚡ <b>Shift / Espacio</b> impulso · <b>E</b> abrir cajas · <b>Q</b> cambiar arma<br>🎯 <b>C</b> activa el Modo Preciso<br>📱 Táctil: stick izquierdo mueve, derecho apunta y dispara<br>🌿 Escóndete en arbustos · 🟣 quédate en el círculo · 👑 ¡gana el último en pie!",bannerSect:"🎌 TU ESTANDARTE",bannerDesc:"Tu estandarte ondea en la pantalla de victoria y tu perfil. Elige el tuyo; cámbialo cuando quieras.",settingsSect:"⚙ AJUSTES · MIRA",langLabel:"🌍 IDIOMA",langNote:"El idioma se aplica a menús, tutorial y emparejamiento. Se guarda solo.",crossNote:"Guardado en este dispositivo y compartido con el modo solo.",colorWord:"COLOR",dynLabel:"DISPERSIÓN DINÁMICA (crece al moverte)",pinLabel:"🎯 MODO PRECISO — los disparos van exactos a la mira",resetCross:"RESTABLECER MIRA",tutReplay:"📖 REPETIR TUTORIAL",mmSearching:"BUSCANDO JUGADORES…",mmFound:"¡JUGADORES ENCONTRADOS!",mmFull:"¡Sala llena — empezando!",mmWait:"Buscando luchadores… la partida empieza en {s}s",mmJoined:"DENTRO",mmSlot:"BUSCANDO",fightersW:"LUCHADORES",mmStart:"▶ EMPEZAR PARTIDA",mmCancel:"✖ CANCELAR",mmNote:"Las partidas empiezan con 8 luchadores o a los 20 segundos.",playAgain:"▶ JUGAR OTRA VEZ",mainMenu:"⌂ MENÚ PRINCIPAL",tutBannerT:"🎌 ELIGE TU ESTANDARTE",tutBannerD:"Este estandarte te representa en la pantalla de victoria. Cámbialo luego en la pestaña ESTANDARTE.",ammo:"MUNICIÓN ∞",alive:"VIVOS",killsW:"BAJAS",onlineW:"EN LÍNEA",wLevel:"Nivel",wMatches:"Partidas",wWins:"Victorias",wKills:"Bajas",wPlayer:"JUGADOR",wDmg:"Daño",wPlace:"Posición",wPlayed:"Jugada",wCoins:"Monedas ganadas",wLevelUp:"🎉 ¡SUBISTE DE NIVEL!",trainingW:"ENTRENAMIENTO",pt0t:"① MUÉVETE",pt1t:"② IMPULSO",pt2t:"③ APUNTA Y DISPARA",pt3t:"④ SAQUEA UNA CAJA",pt4t:"⑤ RECOGE EL ARMA",pt5t:"⑥ CAMBIA DE ARMA",pt6t:"⑦ HAZTE INVISIBLE",pt7t:"⑧ SOBREVIVE AL CÍRCULO",pt0x:"Usa <b>WASD</b> (o el stick izquierdo) para correr al anillo brillante.",pt1x:"Pulsa <b>SHIFT / ESPACIO</b> para impulsarte al anillo lejano: perfecto para esquivar balas.",pt2x:"Apunta con el <b>ratón</b> y mantén <b>CLIC</b> para disparar. ¡Destruye los 3 blancos!",pt3x:"Ponte junto a la caja y pulsa <b>E</b> para sortear un arma.",pt4x:"El arma cayó al suelo: pulsa <b>E</b> para recogerla.",pt5x:"Ahora llevas 2 armas. Pulsa <b>Q</b> (o la rueda) para cambiar.",pt6x:"Quédate en el arbusto 1 segundo: los enemigos no te ven.",pt7x:"¡El círculo se cierra! Entra en el anillo seguro y quédate ahí.",guideSetT:"⚙ ENCUENTRA LOS AJUSTES",guideSetX:"En el menú principal, toca <b>⚙ AJUSTES</b> a la izquierda. Ahí cambias el <b>idioma 🌍</b>, tu mira y el Modo Preciso. Todo se guarda solo.",guideOnT:"🌐 JUGAR EN LÍNEA",guideOnX:"¿Listo para rivales reales? Menú principal → <b>▶ JUGAR</b> → escribe tu nombre → <b>🌐 JUEGO RÁPIDO</b>. El emparejamiento tarda máx. 20s — o pulsa <b>EMPEZAR PARTIDA</b> para entrar ya. ¡Suerte!"},
+fr:{tagLine:"🌐 EN LIGNE · MATCHMAKING PUBLIC",navPlay:"▶ JOUER",navShop:"🛒 BOUTIQUE",soon:"BIENTÔT",navScores:"🏆 CLASSEMENT",navHow:"🎮 COMMENT JOUER",navBanner:"🎌 BANNIÈRE",navSettings:"⚙ PARAMÈTRES",navSolo:"🤖 SOLO VS BOTS",soloBtn:"🤖 SOLO",callsign:"PSEUDO",namePh:"TON PSEUDO",playDesc:"Salons publics de <b>8 combattants</b>. Clique sur PARTIE RAPIDE pour rejoindre le prochain match : le salon démarre plein ou après 20 secondes.",quickPlay:"🌐 PARTIE RAPIDE",shopSect:"🛒 BOUTIQUE — BIENTÔT",shopDesc:"Cosmétiques uniquement. Gagne des 🪙 pièces en match ; ton solde est sauvegardé.",scoresSect:"🏆 TES RECORDS",noMatches:"Aucun match pour le moment — lance une Partie Rapide !",howSect:"🎮 COMMENT JOUER",howText:"🖱 <b>WASD</b> bouger · <b>Souris</b> viser · <b>Clic</b> tirer<br>⚡ <b>Shift / Espace</b> dash · <b>E</b> ouvrir les caisses · <b>Q</b> changer d'arme<br>🎯 <b>C</b> active le Mode Précis<br>📱 Tactile : stick gauche bouge, droit vise et tire<br>🌿 Cache-toi dans les buissons · 🟣 reste dans le cercle · 👑 dernier debout gagne !",bannerSect:"🎌 TA BANNIÈRE",bannerDesc:"Ta bannière flotte sur l'écran de victoire et ton profil. Choisis la tienne, change-la quand tu veux.",settingsSect:"⚙ PARAMÈTRES · VISEUR",langLabel:"🌍 LANGUE",langNote:"La langue s'applique aux menus, au tutoriel et au matchmaking. Sauvegarde automatique.",crossNote:"Sauvegardé sur cet appareil, partagé avec le mode solo.",colorWord:"COULEUR",dynLabel:"DISPERSION DYNAMIQUE (grandit en bougeant)",pinLabel:"🎯 MODE PRÉCIS — les tirs vont exactement dans le viseur",resetCross:"RÉINITIALISER LE VISEUR",tutReplay:"📖 REJOUER LE TUTORIEL",mmSearching:"RECHERCHE DE JOUEURS…",mmFound:"JOUEURS TROUVÉS !",mmFull:"Salon plein — lancement !",mmWait:"Recherche de combattants… le match démarre dans {s}s",mmJoined:"PRÊT",mmSlot:"RECHERCHE",fightersW:"COMBATTANTS",mmStart:"▶ LANCER LE MATCH",mmCancel:"✖ ANNULER",mmNote:"Les matchs démarrent à 8 combattants ou après 20 secondes.",playAgain:"▶ REJOUER",mainMenu:"⌂ MENU PRINCIPAL",tutBannerT:"🎌 CHOISIS TA BANNIÈRE",tutBannerD:"Cette bannière te représente sur l'écran de victoire. Change-la plus tard dans l'onglet BANNIÈRE.",ammo:"MUNITIONS ∞",alive:"EN VIE",killsW:"ÉLIMINATIONS",onlineW:"EN LIGNE",wLevel:"Niveau",wMatches:"Matchs",wWins:"Victoires",wKills:"Éliminations",wPlayer:"JOUEUR",wDmg:"Dégâts",wPlace:"Classement",wPlayed:"Participation",wCoins:"Pièces gagnées",wLevelUp:"🎉 NIVEAU SUPÉRIEUR !",trainingW:"ENTRAÎNEMENT",pt0t:"① BOUGE",pt1t:"② DASH",pt2t:"③ VISE ET TIRE",pt3t:"④ OUVRIR UNE CAISSE",pt4t:"⑤ PRENDRE L'ARME",pt5t:"⑥ CHANGER D'ARME",pt6t:"⑦ DEVENIR INVISIBLE",pt7t:"⑧ SURVIVRE AU CERCLE",pt0x:"Utilise <b>WASD</b> (ou le stick gauche) pour courir dans l'anneau lumineux.",pt1x:"Appuie sur <b>SHIFT / ESPACE</b> pour dasher vers l'anneau lointain — parfait pour esquiver.",pt2x:"Vise avec la <b>souris</b>, maintiens <b>CLIC</b> pour tirer. Détruis les 3 cibles !",pt3x:"Place-toi près de la caisse et appuie sur <b>E</b> pour tirer une arme au sort.",pt4x:"L'arme est tombée au sol — appuie sur <b>E</b> pour la prendre.",pt5x:"Tu portes 2 armes. Appuie sur <b>Q</b> (ou la molette) pour changer.",pt6x:"Reste 1 seconde dans le buisson : les ennemis ne te voient pas.",pt7x:"Le cercle se referme ! Entre dans l'anneau sûr et restes-y.",guideSetT:"⚙ TROUVER LES PARAMÈTRES",guideSetX:"Dans le menu principal, touche <b>⚙ PARAMÈTRES</b> à gauche. Tu peux y changer la <b>langue 🌍</b>, ton viseur et le Mode Précis. Tout est sauvegardé automatiquement.",guideOnT:"🌐 JOUER EN LIGNE",guideOnX:"Prêt pour de vrais adversaires ? Menu principal → <b>▶ JOUER</b> → écris ton pseudo → <b>🌐 PARTIE RAPIDE</b>. Le matchmaking prend 20s max — ou clique <b>LANCER LE MATCH</b> pour entrer tout de suite. Bonne chance !"},
+de:{tagLine:"🌐 ONLINE · ÖFFENTLICHES MATCHMAKING",navPlay:"▶ SPIELEN",navShop:"🛒 SHOP",soon:"BALD",navScores:"🏆 BESTENLISTE",navHow:"🎮 SO GEHT'S",navBanner:"🎌 BANNER",navSettings:"⚙ EINSTELLUNGEN",navSolo:"🤖 SOLO VS BOTS",soloBtn:"🤖 SOLO",callsign:"NAME",namePh:"DEIN NAME",playDesc:"Öffentliche Lobbys mit <b>8 Kämpfern</b>. Tippe auf SCHNELLSPIEL für das nächste Match — Lobbys starten voll oder nach 20 Sekunden.",quickPlay:"🌐 SCHNELLSPIEL",shopSect:"🛒 SHOP — KOMMT BALD",shopDesc:"Nur Kosmetik. Sammle 🪙 Münzen in Matches — dein Guthaben wird gespeichert.",scoresSect:"🏆 DEINE REKORDE",noMatches:"Noch keine Matches — starte ein Schnellspiel!",howSect:"🎮 SO GEHT'S",howText:"🖱 <b>WASD</b> bewegen · <b>Maus</b> zielen · <b>Klick</b> schießen<br>⚡ <b>Shift / Leertaste</b> Dash · <b>E</b> Kisten öffnen · <b>Q</b> Waffe wechseln<br>🎯 <b>C</b> schaltet Präzisionsmodus<br>📱 Touch: linker Stick bewegt, rechter zielt + schießt<br>🌿 Versteck dich in Büschen · 🟣 bleib im Kreis · 👑 der Letzte gewinnt!",bannerSect:"🎌 DEIN BANNER",bannerDesc:"Dein Banner weht auf dem Siegesbildschirm und Profil. Wähle eins — jederzeit änderbar.",settingsSect:"⚙ EINSTELLUNGEN · FADENKREUZ",langLabel:"🌍 SPRACHE",langNote:"Die Sprache gilt für Menüs, Tutorial und Matchmaking. Wird automatisch gespeichert.",crossNote:"Auf diesem Gerät gespeichert, mit Solo geteilt.",colorWord:"FARBE",dynLabel:"DYNAMISCHE STREUUNG (wächst beim Laufen)",pinLabel:"🎯 PRÄZISIONSMODUS — Schüsse treffen exakt ins Fadenkreuz",resetCross:"FADENKREUZ ZURÜCKSETZEN",tutReplay:"📖 TUTORIAL WIEDERHOLEN",mmSearching:"SPIELER WERDEN GESUCHT…",mmFound:"SPIELER GEFUNDEN!",mmFull:"Lobby voll — Start!",mmWait:"Kämpfer werden gesucht… Match startet in {s}s",mmJoined:"DABEI",mmSlot:"SUCHE",fightersW:"KÄMPFER",mmStart:"▶ MATCH STARTEN",mmCancel:"✖ ABBRECHEN",mmNote:"Matches starten mit 8 Kämpfern oder nach 20 Sekunden.",playAgain:"▶ NOCHMAL SPIELEN",mainMenu:"⌂ HAUPTMENÜ",tutBannerT:"🎌 WÄHLE DEIN BANNER",tutBannerD:"Dieses Banner steht für dich auf dem Siegesbildschirm. Später im BANNER-Tab änderbar.",ammo:"MUNITION ∞",alive:"LEBENDE",killsW:"KILLS",onlineW:"ONLINE",wLevel:"Level",wMatches:"Matches",wWins:"Siege",wKills:"Kills",wPlayer:"SPIELER",wDmg:"Schaden",wPlace:"Platzierung",wPlayed:"Gespielt",wCoins:"Münzen erhalten",wLevelUp:"🎉 LEVEL UP!",trainingW:"TRAINING",pt0t:"① BEWEGEN",pt1t:"② DASH",pt2t:"③ ZIELEN & SCHIESSEN",pt3t:"④ KISTE ÖFFNEN",pt4t:"⑤ WAFFE NEHMEN",pt5t:"⑥ WAFFE WECHSELN",pt6t:"⑦ UNSICHTBAR WERDEN",pt7t:"⑧ KREIS ÜBERLEBEN",pt0x:"Laufe mit <b>WASD</b> (oder linkem Stick) in den leuchtenden Ring.",pt1x:"Drücke <b>SHIFT / LEERTASTE</b> für einen Dash in den fernen Ring — super zum Ausweichen.",pt2x:"Ziele mit der <b>Maus</b>, halte <b>KLICK</b> zum Schießen. Zerstöre alle 3 Ziele!",pt3x:"Stell dich an die Kiste und drücke <b>E</b> für eine Waffe.",pt4x:"Die Waffe liegt am Boden — drücke <b>E</b>, um sie zu nehmen.",pt5x:"Du hast jetzt 2 Waffen. Drücke <b>Q</b> (oder Scrollen) zum Wechseln.",pt6x:"Bleib 1 Sekunde im Busch versteckt — Feinde sehen dich nicht.",pt7x:"Der Kreis schließt sich! Geh in den sicheren Ring und bleib dort.",guideSetT:"⚙ EINSTELLUNGEN FINDEN",guideSetX:"Tippe im Hauptmenü links auf <b>⚙ EINSTELLUNGEN</b>. Dort änderst du die <b>Sprache 🌍</b>, dein Fadenkreuz und den Präzisionsmodus. Alles wird automatisch gespeichert.",guideOnT:"🌐 ONLINE SPIELEN",guideOnX:"Bereit für echte Gegner? Hauptmenü → <b>▶ SPIELEN</b> → Name eingeben → <b>🌐 SCHNELLSPIEL</b>. Matchmaking dauert max. 20s — oder tippe <b>MATCH STARTEN</b> für sofortigen Start. Viel Glück!"},
+ja:{tagLine:"🌐 オンライン · パブリックマッチ",navPlay:"▶ プレイ",navShop:"🛒 ショップ",soon:"近日公開",navScores:"🏆 ランキング",navHow:"🎮 遊び方",navBanner:"🎌 バナー",navSettings:"⚙ 設定",navSolo:"🤖 ソロ VS ボット",soloBtn:"🤖 ソロ",callsign:"コールサイン",namePh:"コールサイン",playDesc:"<b>8人</b>のパブリックロビー。クイックプレイで次の試合へ — 満員か20秒で自動開始。",quickPlay:"🌐 クイックプレイ",shopSect:"🛒 ショップ — 近日公開",shopDesc:"見た目アイテムのみ。試合で 🪙 コインを稼ごう。残高は保存されます。",scoresSect:"🏆 あなたの記録",noMatches:"まだ記録がありません — クイックプレイへ！",howSect:"🎮 遊び方",howText:"🖱 <b>WASD</b> 移動 · <b>マウス</b> エイム · <b>クリック</b> 射撃<br>⚡ <b>Shift / スペース</b> ダッシュ · <b>E</b> 箱を開ける · <b>Q</b> 武器切替<br>🎯 <b>C</b> でピンポイント切替<br>📱 タッチ：左スティック移動、右でエイム+射撃<br>🌿 茂みに隠れる · 🟣 円の中にいる · 👑 最後の一人が勝ち！",bannerSect:"🎌 あなたのバナー",bannerDesc:"勝利画面とプロフィールに表示されるバナー。好きなものを選ぼう — いつでも変更可能。",settingsSect:"⚙ 設定 · クロスヘア",langLabel:"🌍 言語",langNote:"言語はメニュー、チュートリアル、マッチメイキングに適用され、自動保存されます。",crossNote:"このデバイスに保存され、ソロモードと共有されます。",colorWord:"色",dynLabel:"ダイナミック拡散（移動で広がる）",pinLabel:"🎯 ピンポイントモード — クロスヘア通りに命中",resetCross:"クロスヘアをリセット",tutReplay:"📖 チュートリアルをもう一度",mmSearching:"プレイヤーを検索中…",mmFound:"プレイヤーが集まった！",mmFull:"ロビー満員 — 開始！",mmWait:"ファイターを検索中… あと {s} 秒で開始",mmJoined:"参加済み",mmSlot:"検索中",fightersW:"人",mmStart:"▶ 試合スタート",mmCancel:"✖ キャンセル",mmNote:"8人集まるか、20秒で自動的に試合開始。",playAgain:"▶ もう一度プレイ",mainMenu:"⌂ メインメニュー",tutBannerT:"🎌 バナーを選ぼう",tutBannerD:"勝利画面であなたを表すバナー。後でバナータブで変更できます。",ammo:"弾薬 ∞",alive:"生存",killsW:"キル",onlineW:"オンライン",wLevel:"レベル",wMatches:"試合数",wWins:"勝利",wKills:"キル",wPlayer:"プレイヤー",wDmg:"ダメージ",wPlace:"順位",wPlayed:"参加",wCoins:"獲得コイン",wLevelUp:"🎉 レベルアップ！",trainingW:"トレーニング",pt0t:"① 移動",pt1t:"② ダッシュ",pt2t:"③ エイムと射撃",pt3t:"④ 箱を開ける",pt4t:"⑤ 武器を取る",pt5t:"⑥ 武器を替える",pt6t:"⑦ 隠れる",pt7t:"⑧ 円の中で生き残る",pt0x:"<b>WASD</b>（または左スティック）で光る輪の中へ走ろう。",pt1x:"<b>SHIFT / スペース</b>で遠くの輪へダッシュ — 弾よけに便利。",pt2x:"<b>マウス</b>で狙い、<b>クリック長押し</b>で射撃。的を3つ壊そう！",pt3x:"箱のそばで <b>E</b> を押して武器を引こう。",pt4x:"武器が地面に落ちた — <b>E</b> で拾おう。",pt5x:"武器は2つ持てる。<b>Q</b>（またはスクロール）で切替。",pt6x:"茂みの中で1秒隠れると敵から見えなくなる。",pt7x:"円が縮んでくる！安全な輪の中に入って待とう。",guideSetT:"⚙ 設定の場所",guideSetX:"メインメニュー左の <b>⚙ 設定</b>をタップ。そこで<b>言語 🌍</b>、クロスヘア、ピンポイントの切替ができます。自動で保存されます。",guideOnT:"🌐 オンラインプレイ",guideOnX:"本物の相手と戦う準備はいい？ メインメニュー → <b>▶ プレイ</b> → コールサイン入力 → <b>🌐 クイックプレイ</b>。マッチメイキングは最大20秒 — <b>試合スタート</b>ですぐ開始も可能。幸運を！"},
+ko:{tagLine:"🌐 온라인 · 공개 매치메이킹",navPlay:"▶ 플레이",navShop:"🛒 상점",soon:"출시 예정",navScores:"🏆 순위표",navHow:"🎮 게임 방법",navBanner:"🎌 배너",navSettings:"⚙ 설정",navSolo:"🤖 솔로 VS 봇",soloBtn:"🤖 솔로",callsign:"콜사인",namePh:"콜사인 입력",playDesc:"<b>8명</b>의 공개 로비. 빠른 플레이로 다음 경기에 참가 — 정원이 차거나 20초 후 자동 시작.",quickPlay:"🌐 빠른 플레이",shopSect:"🛒 상점 — 출시 예정",shopDesc:"치장 아이템만 있습니다. 경기에서 🪙 코인을 모으세요. 잔액은 저장됩니다.",scoresSect:"🏆 내 기록",noMatches:"아직 기록이 없습니다 — 빠른 플레이로 가세요!",howSect:"🎮 게임 방법",howText:"🖱 <b>WASD</b> 이동 · <b>마우스</b> 조준 · <b>클릭</b> 발사<br>⚡ <b>Shift / 스페이스</b> 대시 · <b>E</b> 상자 열기 · <b>Q</b> 무기 교체<br>🎯 <b>C</b> 핀포인트 모드 전환<br>📱 터치: 왼쪽 스틱 이동, 오른쪽 조준+발사<br>🌿 수풀에 숨기 · 🟣 원 안에 있기 · 👑 최후의 1인이 승리!",bannerSect:"🎌 내 배너",bannerDesc:"승리 화면과 프로필에 표시되는 배너입니다. 마음에 드는 것을 고르세요 — 언제든 변경 가능.",settingsSect:"⚙ 설정 · 조준점",langLabel:"🌍 언어",langNote:"언어는 메뉴, 튜토리얼, 매치메이킹에 적용되고 자동 저장됩니다.",crossNote:"이 기기에 저장되며 솔로 모드와 공유됩니다.",colorWord:"색상",dynLabel:"다이나믹 확산 (이동 시 넓어짐)",pinLabel:"🎯 핀포인트 모드 — 조준점 그대로 명중",resetCross:"조준점 초기화",tutReplay:"📖 튜토리얼 다시보기",mmSearching:"플레이어 찾는 중…",mmFound:"플레이어를 찾았습니다!",mmFull:"로비 가득 참 — 시작!",mmWait:"파이터를 찾는 중… {s}초 후 경기 시작",mmJoined:"참가 완료",mmSlot:"검색 중",fightersW:"명",mmStart:"▶ 경기 시작",mmCancel:"✖ 취소",mmNote:"8명이 모이거나 20초 후 자동으로 경기가 시작됩니다.",playAgain:"▶ 다시 플레이",mainMenu:"⌂ 메인 메뉴",tutBannerT:"🎌 배너를 고르세요",tutBannerD:"승리 화면에서 당신을 나타내는 배너입니다. 나중에 배너 탭에서 바꿀 수 있어요.",ammo:"탄약 ∞",alive:"생존",killsW:"킬",onlineW:"온라인",wLevel:"레벨",wMatches:"경기",wWins:"승리",wKills:"킬",wPlayer:"플레이어",wDmg:"피해량",wPlace:"순위",wPlayed:"참가",wCoins:"획득 코인",wLevelUp:"🎉 레벨 업!",trainingW:"훈련",pt0t:"① 이동",pt1t:"② 대시",pt2t:"③ 조준과 사격",pt3t:"④ 상자 열기",pt4t:"⑤ 총 줍기",pt5t:"⑥ 무기 교체",pt6t:"⑦ 숨기",pt7t:"⑧ 원 안에서 생존",pt0x:"<b>WASD</b>(또는 왼쪽 스틱)로 빛나는 원 안으로 달리세요.",pt1x:"<b>SHIFT / 스페이스</b>를 눌러 먼 원으로 대시 — 총알 회피에 좋아요.",pt2x:"<b>마우스</b>로 조준하고 <b>클릭을 hold</b>해 발사. 표적 3개를 부수세요!",pt3x:"상자 옆에서 <b>E</b>를 눌러 무기를 뽑으세요.",pt4x:"총이 바닥에 떨어졌습니다 — <b>E</b>를 눌러 주우세요.",pt5x:"이제 총이 2개입니다. <b>Q</b>(또는 스크롤)로 교체하세요.",pt6x:"수풀 안에 1초 숨어 있으면 적에게 보이지 않습니다.",pt7x:"원이 줄어듭니다! 안전한 원 안에 들어가 버티세요.",guideSetT:"⚙ 설정 위치",guideSetX:"메인 메뉴 왼쪽의 <b>⚙ 설정</b>을 누르세요. 거기서 <b>언어 🌍</b>, 조준점, 핀포인트 모드를 바꿀 수 있고 자동 저장됩니다.",guideOnT:"🌐 온라인 플레이",guideOnX:"진짜 상대와 싸울 준비 됐나요? 메인 메뉴 → <b>▶ 플레이</b> → 콜사인 입력 → <b>🌐 빠른 플레이</b>. 매치메이킹은 최대 20초 — <b>경기 시작</b>을 누르면 바로 시작합니다. 행운을 빌어요!"}
+};
+let LANG="en"; try{ LANG=localStorage.getItem("pr_lang")||"en"; if(!I18N[LANG])LANG="en"; }catch(e){}
+function t(k){ return (I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k; }
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.innerHTML=t(el.dataset.i18n); });
+  const LB=[[".navBtn[data-view='play']","navPlay"],[".navBtn[data-view='scores']","navScores"],[".navBtn[data-view='how']","navHow"],[".navBtn[data-view='banner']","navBanner"],[".navBtn[data-view='settings']","navSettings"],[".lobbyNav a[href='index.html']","navSolo"],["#playOnlineBtn","quickPlay"],["#startNowBtn","mmStart"],["#cancelQBtn","mmCancel"],["#againBtn","playAgain"],["#menuBtn","mainMenu"],["#endOv a[href='index.html']","soloBtn"],["#hudTop .pill:nth-child(1) .l","alive"],["#hudTop .pill:nth-child(2) .l","killsW"],["#hudTop .pill:nth-child(3) .l","onlineW"]];
+  LB.forEach(([sel,k])=>{ const el=document.querySelector(sel); if(el)el.innerHTML=t(k); });
+  const sh=document.querySelector(".navBtn[data-view='shop']"); if(sh)sh.innerHTML=t("navShop")+" <span style='color:var(--gold)'>"+t("soon")+"</span>";
+  const ni=$("nameIn"); if(ni)ni.placeholder=t("namePh");
+  document.documentElement.lang=LANG;
+  try{ if(TP)tutSyncUI(); }catch(e){}
+  try{ if($("tutOv").classList.contains("on"))showTutStep(); }catch(e){}
+  try{ refreshProfile(); }catch(e){}
+}
+const _langSelEl=$("langSel");
+if(_langSelEl){ _langSelEl.value=LANG; _langSelEl.onchange=e=>{ LANG=e.target.value; try{ localStorage.setItem("pr_lang",LANG); }catch(err){} audio(); applyLang(); tone(740,.06,"square",.08); }; }
+applyLang();
+
 /* ---------- banners ---------- */
 const BANNERS=[
   {id:'rookie', name:'ROOKIE', icon:'🟢', bg:'linear-gradient(135deg,#23402a,#3f7a44)'},
@@ -389,6 +442,8 @@ const TUT=[
   {icon:'🔫',bg:'linear-gradient(135deg,#4d2408,#c2620f)',title:'SHOOT & FIGHT',text:'<b>Hold click</b> to fire. Guns <b>kick and spread while you move</b> — stop or tap-fire for accuracy, or press <span class="kbd">C</span> for Pinpoint Mode. <span class="kbd">SHIFT</span> dashes to dodge!'},
   {icon:'🎰',bg:'linear-gradient(135deg,#2a1440,#7a3fd1)',title:'LOOT UP',text:'Open crates with <span class="kbd">E</span> — the roll spins, then your gun <b>drops on the floor</b>: grab it with <span class="kbd">E</span>. Carry 2 guns, swap with <span class="kbd">Q</span>. Better crates = rarer guns (up to <b style="color:#ffd52e">LEGENDARY</b>)!'},
   {icon:'🌿',bg:'linear-gradient(135deg,#073b40,#0f8a96)',title:'SURVIVE',text:'Hide in <b>bushes</b> to turn invisible. Grab <b>medkits</b> from fallen fighters, and <b>stay inside the circle</b> — outside it burns. Not fighting for a while? Your HP slowly recovers to 75.'},
+  {icon:'⚙️',bg:'linear-gradient(135deg,#0b2d4d,#1f6fc9)',tk:'guideSetT',xk:'guideSetX'},
+  {icon:'🌐',bg:'linear-gradient(135deg,#14532d,#2f9e44)',tk:'guideOnT',xk:'guideOnX'},
 ];
 let tutIdx=0;
 function showTutStep(){
@@ -399,7 +454,7 @@ function showTutStep(){
   $('tutText').style.display=atBanner?'none':'block';
   if(!atBanner){ const st=TUT[tutIdx];
     $('tutArt').textContent=st.icon; $('tutArt').style.background=st.bg;
-    $('tutTitle').textContent=st.title; $('tutText').innerHTML=st.text;
+    $('tutTitle').textContent=st.tk?t(st.tk):st.title; $('tutText').innerHTML=st.xk?t(st.xk):st.text;
   } else {
     renderBannerGrid($('bannerGridTut'),myBanner().id,bb=>{ try{ localStorage.setItem('pr_banner',bb.id); }catch(e){} applyBanner(); showTutStep(); });
   }
@@ -415,12 +470,13 @@ $('tutBack').onclick=()=>{ if(tutIdx>0){ tutIdx--; showTutStep(); } };
 $('tutSkip').onclick=()=>closeTut();
 $('tutReplay').onclick=()=>{ audio(); startTutPlay(); };
 applyBanner();
+window._bootTut=null;
 try{
   if(!localStorage.getItem('pr_tutored')){
-    if(localStorage.getItem('pr_trained')){ tutIdx=TUT.length; showTutStep(); $('tutOv').classList.add('on'); } // trained already (e.g. in solo) -> just pick a banner
-    else startTutPlay(); // resumes at pr_tut_step if they left mid-training
+    if(localStorage.getItem('pr_trained'))window._bootTut='banner'; // trained already (e.g. in solo) -> just pick a banner
+    else window._bootTut='play'; // resumes at pr_tut_step if they left mid-training
   }
-}catch(e){ startTutPlay(); }
+}catch(e){ window._bootTut='play'; }
 
 /* ---------- profile: level / XP / coins (saved on this device) ---------- */
 function xpNeed(level){ return 100+(level-1)*50; }
@@ -431,7 +487,7 @@ function refreshProfile(){
   $('coinAmt').textContent=getNum('pr_coins');
   $('lvlPill').textContent='⭐ LV '+li.level+' · '+li.into+'/'+li.need+' XP';
   try{ const st=JSON.parse(localStorage.getItem('pr_stats')||'{"games":0,"wins":0,"kills":0}');
-    $('menuStats').innerHTML='Level <b>'+li.level+'</b> · Matches: <b>'+st.games+'</b> · Wins: <b>'+st.wins+'</b> · Kills: <b>'+st.kills+'</b>'; }catch(e){}
+    $('menuStats').innerHTML=t('wLevel')+' <b>'+li.level+'</b> · '+t('wMatches')+': <b>'+st.games+'</b> · '+t('wWins')+': <b>'+st.wins+'</b> · '+t('wKills')+': <b>'+st.kills+'</b>'; }catch(e){}
 }
 function spawnConfetti(){
   const box=$('confetti'); box.innerHTML='';
@@ -445,11 +501,11 @@ function spawnConfetti(){
 function renderMM(count,target,startsIn){
   const slots=$('mmSlots'); slots.innerHTML='';
   for(let i=0;i<target;i++){ const d=document.createElement('div'); d.className='slot'+(i<count?' filled':'');
-    d.innerHTML=i<count?'🧑<br>JOINED':'···<br>SEARCHING'; slots.appendChild(d); }
+    d.innerHTML=i<count?'🧑<br>'+t('mmJoined'):'···<br>'+t('mmSlot'); slots.appendChild(d); }
   $('mmFill').style.width=Math.round(count/target*100)+'%';
-  $('mmCount').textContent=count+' / '+target+' FIGHTERS';
-  $('mmInfo').textContent=count>=target?'Full lobby — launching!':'Searching for fighters… match launches in '+startsIn+'s';
-  $('mmTitle').textContent=count>=2?'PLAYERS FOUND!':'SEARCHING FOR PLAYERS…';
+  $('mmCount').textContent=count+' / '+target+' '+t('fightersW');
+  $('mmInfo').textContent=count>=target?t('mmFull'):t('mmWait').replace('{s}',startsIn);
+  $('mmTitle').textContent=count>=2?t('mmFound'):t('mmSearching');
 }
 function onMsg(m){
   if(m.type==='queued'||m.type==='queue'){ renderMM(m.count||1,m.target||8,m.startsIn==null?30:m.startsIn); }
@@ -499,14 +555,14 @@ function onMsg(m){
     $('endRewards').innerHTML=
       '<div class="rwRow"><span>🔫 Kills ×'+myKills+'</span><b>'+(myKills*15)+' XP</b></div>'+
       '<div class="rwRow"><span>💥 Damage '+myDmg+'</span><b>'+Math.floor(myDmg/50)+' XP</b></div>'+
-      '<div class="rwRow"><span>🏅 Placement #'+place+'</span><b>'+((total-place)*5+(win?50:0))+' XP</b></div>'+
+      '<div class="rwRow"><span>🏅 '+t('wPlace')+' #'+place+'</span><b>'+((total-place)*5+(win?50:0))+' XP</b></div>'+
       '<div class="rwRow"><span>🎮 Played</span><b>20 XP</b></div>'+
-      '<div class="rwRow" style="border-top:1px solid #2b4a73;padding-top:5px"><span>🪙 Coins earned</span><b style="color:var(--gold)">+'+coinsEarned+'</b></div>';
-    $('xpLevelLine').innerHTML=leveled?('🎉 LEVEL UP! &nbsp;LV '+before.level+' → <span style="color:var(--gold)">LV '+after.level+'</span>'):('⭐ LEVEL '+after.level);
+      '<div class="rwRow" style="border-top:1px solid #2b4a73;padding-top:5px"><span>🪙 '+t('wCoins')+'</span><b style="color:var(--gold)">+'+coinsEarned+'</b></div>';
+    $('xpLevelLine').innerHTML=leveled?(t('wLevelUp')+' &nbsp;LV '+before.level+' → <span style="color:var(--gold)">LV '+after.level+'</span>'):('⭐ '+t('wLevel').toUpperCase()+' '+after.level);
     $('xpLevelLine').style.color=leveled?'var(--gold)':'';
     $('xpGainLine').textContent='+'+xpEarned+' XP · '+after.into+' / '+after.need+' XP to LV '+(after.level+1);
     $('xpFill').style.width=Math.round(before.into/before.need*100)+'%';
-    $('endTable').innerHTML='<table><tr><th>#</th><th>PLAYER</th><th>KILLS</th><th>DMG</th></tr>'+m.standings.map(s2=>'<tr><td>'+s2.place+'</td><td>'+s2.name+(s2.win?' 👑':'')+'</td><td>'+s2.kills+'</td><td>'+s2.dmg+'</td></tr>').join('')+'</table>';
+    $('endTable').innerHTML='<table><tr><th>#</th><th>'+t('wPlayer')+'</th><th>'+t('wKills')+'</th><th>DMG</th></tr>'+m.standings.map(s2=>'<tr><td>'+s2.place+'</td><td>'+s2.name+(s2.win?' 👑':'')+'</td><td>'+s2.kills+'</td><td>'+s2.dmg+'</td></tr>').join('')+'</table>';
     $('endOv').classList.add('on'); if(ws&&ws.readyState===1)$('playOnlineBtn').disabled=false;
     refreshProfile();
     if(win){ spawnConfetti(); tone(523,.16,'square',.14); setTimeout(()=>tone(659,.16,'square',.14),130); setTimeout(()=>tone(784,.16,'square',.14),260); setTimeout(()=>tone(1046,.3,'square',.16),390); }
@@ -774,18 +830,10 @@ function startTutPlay(){
 }
 function tutSyncUI(){
   if(!TP)return;
-  const titles=['① MOVE','② DASH','③ AIM & SHOOT','④ LOOT A CRATE','⑤ TAKE THE GUN','⑥ SWAP WEAPON','⑦ GO INVISIBLE','⑧ SURVIVE THE CIRCLE'];
-  const texts=[
-    'Use <b>WASD</b> (or the left stick) to run into the glowing ring.',
-    'Press <b>SHIFT / SPACE</b> to dash into the far ring — great for dodging bullets.',
-    'Aim with the <b>mouse</b>, hold <b>CLICK</b> to fire. Destroy all 3 target dummies!',
-    'Stand at the crate and press <b>E</b> to roll for a weapon.',
-    'The gun dropped on the floor — press <b>E</b> to take it.',
-    'You carry 2 guns now. Press <b>Q</b> (or scroll) to swap.',
-    'Stand inside the bush and stay hidden for 1 second — enemies can\'t see you in there.',
-    'The circle is closing! Get inside the safe ring and stay there.'];
+  const titles=[t('pt0t'),t('pt1t'),t('pt2t'),t('pt3t'),t('pt4t'),t('pt5t'),t('pt6t'),t('pt7t')];
+  const texts=[t('pt0x'),t('pt1x'),t('pt2x'),t('pt3x'),t('pt4x'),t('pt5x'),t('pt6x'),t('pt7x')];
   if(TP.step<8){ $('tutObjTitle').textContent=titles[TP.step]; $('tutObjText').innerHTML=TP.rolling>0?('🎰 Rolling… <b style="color:#ffd52e">'+TP.rollName+'</b>'):texts[TP.step]; }
-  $('tutSteps').innerHTML='<div class="pix" style="color:var(--gold)">TRAINING</div>'+TSTEPS.map((t2,i)=>'<div class="'+(i<TP.step?'done':i===TP.step?'cur':'')+'">'+(i<TP.step?'✔ ':i===TP.step?'▶ ':'· ')+t2+'</div>').join('');
+  $('tutSteps').innerHTML='<div class="pix" style="color:var(--gold)">'+t('trainingW')+'</div>'+TSTEPS.map((t2,i)=>'<div class="'+(i<TP.step?'done':i===TP.step?'cur':'')+'">'+(i<TP.step?'✔ ':i===TP.step?'▶ ':'· ')+t2+'</div>').join('');
 }
 function tutTarget(){
   if(!TP)return null;
@@ -823,7 +871,7 @@ function endTutPlay(finished){
   if(TP)TP.active=false; TP=null;
   $('tutUI').style.display='none';
   if(finished){ tone(523,.15,'square',.13); setTimeout(()=>tone(784,.15,'square',.13),120); setTimeout(()=>tone(1046,.28,'square',.14),240); }
-  tutIdx=TUT.length; showTutStep(); $('tutOv').classList.add('on'); // -> banner choice
+  tutIdx=5; showTutStep(); $('tutOv').classList.add('on'); // -> guide steps (settings, play online), then banner choice
 }
 $('tutSkip2').onclick=()=>endTutPlay(false);
 function tutLoop(now){
@@ -936,6 +984,24 @@ function tutRender(){
 }
 connect();
 requestAnimationFrame(frame);
+/* first-run order: 1) language (first time only)  2) tutorial  3) banner  4) menu */
+const LANGCHOICES=[["en","🇬🇧 English"],["zh-TW","🇹🇼 繁體中文"],["zh-CN","🇨🇳 简体中文"],["es","🇪🇸 Español"],["fr","🇫🇷 Français"],["de","🇩🇪 Deutsch"],["ja","🇯🇵 日本語"],["ko","🇰🇷 한국어"]];
+function proceedBoot(){
+  if(window._bootTut==='play')startTutPlay();
+  else if(window._bootTut==='banner'){ tutIdx=TUT.length; showTutStep(); $('tutOv').classList.add('on'); }
+}
+function showLangFirst(){
+  const grid=$('langGrid'); grid.innerHTML='';
+  LANGCHOICES.forEach(([code,label])=>{ const b=document.createElement('button'); b.className='langBtn'; b.textContent=label;
+    b.onclick=()=>{ LANG=code; try{ localStorage.setItem('pr_lang',code); }catch(e){}
+      const sel=$('langSel'); if(sel)sel.value=code;
+      applyLang(); tone(740,.07,'square',.09); setTimeout(()=>tone(988,.1,'square',.09),80);
+      $('langOv').classList.remove('on'); proceedBoot(); };
+    grid.appendChild(b); });
+  $('langOv').classList.add('on');
+}
+let _langSaved=true; try{ _langSaved=!!localStorage.getItem('pr_lang'); }catch(e){}
+if(_langSaved)proceedBoot(); else showLangFirst();
 </script>
 </body>
 </html>
