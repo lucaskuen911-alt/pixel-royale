@@ -363,6 +363,7 @@ $('chReset').onclick=()=>{ CH={color:'#3dff73',dot:true,dotSize:2,len:8,thick:2,
 syncCHUI();
 $('playOnlineBtn').onclick=()=>{ audio(); queueUp(); };
 $('cancelQBtn').onclick=()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'dequeue'})); $('queueOv').classList.remove('on'); $('playOnlineBtn').disabled=false; };
+addEventListener('keydown',e=>{ if((e.code==='Escape'||e.code==='KeyB')&&inMatch&&!myAlive&&$('spec').onclick)$('spec').click(); });
 $('spec').onclick=()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'forfeit'}));
   inMatch=false; $('spec').style.display='none'; $('hud').classList.remove('on'); $('lobby').classList.add('on'); refreshProfile();
   if(ws&&ws.readyState===1)$('playOnlineBtn').disabled=false; };
@@ -536,7 +537,7 @@ function onMsg(m){
       if(m.victim===myId){ hurtFlash=.55; shake(.3); } }
     if(m.ev==='boom'){ tone(90,.4,'sawtooth',.2,-40); if(cam&&Math.hypot(m.x-cam.x,m.y-cam.y)<560){ shake(.55); burst(m.x,m.y,22,['#ff9d45','#ffd52e','#8a5a3a']); } }
   }
-  if(m.type==='match_end'){ inMatch=false; $('count').style.display='none';
+  if(m.type==='match_end'){ if(!inMatch)return; inMatch=false; $('count').style.display='none';
     const total=m.standings.length;
     const place=myAlive?1:(myPlace||total);
     const win=place===1;
@@ -632,7 +633,7 @@ function readInput(){
 setInterval(()=>{ if(ws&&ws.readyState===1&&inMatch){ const inp=readInput(); ws.send(JSON.stringify({type:'input',input:inp})); dashQ=false; swapQ=false; } },16);
 
 function localFireFX(dt){
-  localCool-=dt; localBloom=Math.max(0,localBloom-dt*.16);
+  localCool-=dt; localBloom=Math.max(0,localBloom-dt*(((window._moveF||0)>.1)?.045:.13));
   localRecoilA*=Math.pow(.000001,dt); localKick*=Math.pow(.0001,dt);
   if(!latestSnap||!latestSnap.self||!pred||matchPhase!=='live'||!myAlive)return;
   const s2=latestSnap.self, st=WSTATS[s2.weapon]||WSTATS.pistol;
@@ -641,10 +642,11 @@ function localFireFX(dt){
   if(s2.ammo<=0)return;
   localCool=st.rate;
   const _ri=window._inp||readInput(); const moveF=clamp(Math.hypot(_ri.mx,_ri.my),0,1);
-  localRecoilA+=(Math.random()*2-1)*st.kick*(CH.pinpoint?0:(.007+moveF*.024)); // solo: moving makes the muzzle climb
+  localRecoilA+=(Math.random()*2-1)*st.kick*(CH.pinpoint?0:(.007+moveF*.024)); // visual muzzle climb on the gun sprite only
   localKick=Math.min(11,st.kick*1.5);
-  const effAim=myAim+localRecoilA;
-  const spread=CH.pinpoint?0:st.spread+localBloom+moveF*moveF*.05;
+  const effAim=myAim; // tracers fly the crosshair — exactly what the server hit-tests
+  const srvB=(latestSnap&&latestSnap.self&&latestSnap.self.bloom)||0;
+  const spread=CH.pinpoint?0:st.spread+Math.max(localBloom,srvB)+moveF*moveF*.05;
   const gx=pred.x, gy=pred.y-28;
   for(let p=0;p<st.pellets;p++){
     const a=st.pellets>1?effAim+((p/(st.pellets-1))-.5)*st.spread*1.7+(Math.random()-.5)*.03:effAim+(Math.random()-.5)*2*spread;
@@ -711,15 +713,15 @@ function frame(now){
     } else { predVX=0; predVY=0; }
     const dx=me.x-pred.x, dy=me.y-pred.y, dist=Math.hypot(dx,dy);
     if(dist>180){ pred.x=me.x; pred.y=me.y; } // only hard-snap on real desyncs/teleports
-    else if(matchPhase==='live'&&dist>48){ const k=1-Math.exp(-2.5*dt); pred.x+=dx*k; pred.y+=dy*k; } // trust your input inside 48px
-    const cd=1-Math.exp(-13*dt); cam.x+=((pred.x)-cam.x)*cd; cam.y+=((pred.y-16)-cam.y)*cd;
+    else if(matchPhase==='live'&&dist>48&&localDashT<=0){ const k=1-Math.exp(-2.5*dt); pred.x+=dx*k; pred.y+=dy*k; } // trust your input inside 48px
+    if(myAlive){ const cd=1-Math.exp(-13*dt); cam.x+=((pred.x)-cam.x)*cd; cam.y+=((pred.y-16)-cam.y)*cd; }
   }
   localFireFX(dt);
   const meP=me;
   if(meP){ if(meP.alive&&!myAlive){} if(!meP.alive&&myAlive){ myAlive=false; myPlace=(latestSnap.alive||0)+1; } if(meP.alive)myAlive=true; }
   if(pred&&(mouse.down||tAim.fire)){}
-  if(!myAlive&&meP){ const target=players.find(p2=>p2.id===lastKillerId&&p2.alive)||players.find(p2=>p2.alive&&p2.x!==undefined);
-    if(target){ cam.x+=(target.x-cam.x)*Math.min(1,dt*4); cam.y+=(target.y-16-cam.y)*Math.min(1,dt*4); }
+  if(!myAlive&&meP){ const target=players.find(p2=>p2.id===lastKillerId&&p2.alive)||players.filter(p2=>p2.alive&&p2.x!==undefined).sort((a,b)=>Math.hypot(a.x-meP.x,a.y-meP.y)-Math.hypot(b.x-meP.x,b.y-meP.y))[0];
+    if(target){ const cd=1-Math.exp(-5*dt); cam.x+=(target.x-cam.x)*cd; cam.y+=(target.y-16-cam.y)*cd; }
     const sp=$('spec'); sp.style.display='block'; sp.textContent='💀 YOU PLACED #'+myPlace+' — SPECTATING · ⬅ QUIT TO MENU'; }
   else $('spec').style.display='none';
   // open-crate prompt

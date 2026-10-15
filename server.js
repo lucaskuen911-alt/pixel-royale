@@ -105,6 +105,7 @@ function collide(obs,f){
   const dx=f.x-C.x, dy=f.y-C.y, d=Math.hypot(dx,dy), max=C.r-26;
   if(d>max){ f.x=C.x+dx/d*max; f.y=C.y+dy/d*max; }
 }
+function distSeg(px,py,x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1, L=dx*dx+dy*dy||1; let t=((px-x1)*dx+(py-y1)*dy)/L; t=clamp(t,0,1); return Math.hypot(px-(x1+dx*t),py-(y1+dy*t)); }
 function losBlocked(obs,x1,y1,x2,y2){ const d=Math.hypot(x2-x1,y2-y1), st=Math.max(1,d/38|0); for(let i=1;i<st;i++){ const t=i/st; if(pointBlocked(obs,x1+(x2-x1)*t,y1+(y2-y1)*t,4))return true; } return false; }
 function openCrate(m,f,cr){ cr.open=true; f.crateCD=1; const key=rollForTier(cr.tier);
   m.pickups.push({kind:'gun',wkey:key,x:cr.x+rnd(-8,8),y:cr.y+18,vx:rnd(-70,70),vy:rnd(30,90),life:60,delay:1.5});
@@ -212,7 +213,7 @@ function tryFire(m,f){
   f.cool=wp.rate; f.ammos[f.slot]--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1);
   f.recoilA=(f.recoilA||0)+rnd(-1,1)*(wp.kick||2)*(f.pinpoint?0:.007+moveF*.024);
-  const eff=f.aim+f.recoilA, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38;
+  const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38;
   const spread=f.pinpoint?0:wp.spread+f.bloom+moveF*moveF*.05;
   for(let p=0;p<wp.pellets;p++){
     const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-.015,.015):eff+rnd(-spread,spread);
@@ -296,7 +297,7 @@ function tickMatch(m,dt){
     for(let st=0;st<2&&!dead;st++){ b.x+=b.vx*dt/2; b.y+=b.vy*dt/2; b.travel+=Math.hypot(b.vx,b.vy)*dt/2;
       if(pointBlocked(m.obs,b.x,b.y,1)){ if(b.explosive)explode(m,b.x,b.y,b.owner); dead=true; break; }
       for(const f of m.players.values()){ if(!f.alive||f===b.owner)continue;
-        if(Math.hypot(b.x-f.x,b.y-(f.y-28))<22){ if(b.explosive)explode(m,b.x,b.y,b.owner);
+        if(distSeg(b.x,b.y,f.x,f.y-56,f.x,f.y-6)<21){ if(b.explosive)explode(m,b.x,b.y,b.owner);
           else { const fo=FALLOFF[b.wkey]||[500,.5], fd=b.travel<=fo[0]?1:Math.max(fo[1],1-(b.travel-fo[0])/520), crit=Math.random()<.08; hurt(m,f,b.dmg*fd*(crit?1.5:1),b.owner,crit); }
           dead=true; break; } }
     }
@@ -340,7 +341,7 @@ function handleMsg(c,msg){
     queueStatus();
   }
   if(msg.type==='dequeue'){ removeFromQueue(c); }
-  if(msg.type==='forfeit'&&c.match&&c.pid){ const m=matches.get(c.match); if(m){ const pl=m.players.get(c.pid);
+  if(msg.type==='forfeit'&&c.match&&c.pid){ const m=matches.get(c.match); if(m){ const pl=m.players.get(c.pid); if(pl)pl.client=null;
     if(pl&&pl.alive){ pl.alive=false; pl.hp=0; mEvent(m,{ev:'left',victim:pl.name}); checkEnd(m); } } c.match=null; c.pid=null; }
   if(msg.type==='start_now'&&c.queued){ launchLobby(); } // fill with bots right now, no waiting
   if(msg.type==='input'&&c.match&&c.pid){
