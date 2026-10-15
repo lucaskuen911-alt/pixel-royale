@@ -1,0 +1,8 @@
+{
+  "name": "pixel-royale",
+  "version": "1.0.0",
+  "description": "Pixel Royale — 8-bit battle royale with public online matchmaking",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
