@@ -340,6 +340,8 @@ function handleMsg(c,msg){
     queueStatus();
   }
   if(msg.type==='dequeue'){ removeFromQueue(c); }
+  if(msg.type==='forfeit'&&c.match&&c.pid){ const m=matches.get(c.match); if(m){ const pl=m.players.get(c.pid);
+    if(pl&&pl.alive){ pl.alive=false; pl.hp=0; mEvent(m,{ev:'left',victim:pl.name}); checkEnd(m); } } c.match=null; c.pid=null; }
   if(msg.type==='start_now'&&c.queued){ launchLobby(); } // fill with bots right now, no waiting
   if(msg.type==='input'&&c.match&&c.pid){
     const m=matches.get(c.match); if(!m)return; const p=m.players.get(c.pid); if(!p)return;
