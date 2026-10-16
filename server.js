@@ -7,7 +7,7 @@ const MIME={'.html':'text/html','.js':'text/javascript','.png':'image/png','.css
 
 const server=http.createServer((req,res)=>{
   let urlPath=decodeURIComponent((req.url||'/').split('?')[0]);
-  if(urlPath==='/')urlPath='/index.html';
+  if(urlPath==='/')urlPath='/online.html';
   const file=path.join(DIR,path.normalize(urlPath));
   if(!file.startsWith(DIR)){ res.writeHead(403); return res.end('forbidden'); }
   fs.readFile(file,(err,data)=>{
@@ -68,7 +68,7 @@ const WEAPONS={
 };
 const WBLOOM={pistol:.006,shotgun:.02,m4:.005,ak:.008,lmg:.007,uzi:.006,rpg:.03};
 const FALLOFF={pistol:[430,.55],uzi:[300,.5],shotgun:[165,.3],m4:[580,.6],ak:[540,.55],lmg:[560,.55],rpg:[1e9,1]};
-const BOTNAMES=['SHADOWX','NOSCOPE','VIPER99','PIXELKID','GHOST07','TURBOFOX','MADMAX','SNIPEZ','LOOTLORD','CLUTCH','RAZOR','ONYX','FROST','HAVOC','JUMPER','NOVA','ZERO','RUBY','COBRA','ECHO','VEX'];
+const BOTNAMES=['影','虚無','零','悪魔','cøld','kxrma','v o i d','zxro','.exe','lucid','aimbot','百殺','虐殺','もう無理','寝不足','助けて','kage.exe','hyakusatsu','shinigami.ql','zxro影','akuma 999','yaiba_qt','kyomu.ttv','kijin diff','arashi fn','100kills.ex','i miss her','whenwin','coldwiner','breather','weter','残響','夜桜','無音','ツキ','s1lent','n0va','r e q u i e m','gl1tch','yurei.ql','oni mask','hakai','sora.exe','mugetsu','j1nx','wr3ck','ketsueki','dr1ft','shinobi.7','bl00d','kurayami','asagiri','phant0m','setsuna','oboro','hollow.ttv','negai','munou','hikari','kuromi.exe','abyss 999','neko diff','tsukuyomi','raven.ql','sa1koro','vex.exe','nukumori','shikaku','aokage','melt','yokai_99','genjitsu','cr0w','satsujin','yoru.exe','w o l f','kodoku','zangetsu','himawari','d0ze','unmei','ame.exe','月蝕','神楽','ロンリ','yuurei','s0rrow','n e o n','hakai.exe','ketsugai','yami.ttv','mugen','rengoku','shinra','oborozuki','wasure','k1tsune','aoi.exe','hannya','tsukiyo','guren','s4kurai','mirage','zenith.ql','kamikaze 0','shiranai','usotsuki','hibana','kagerou','y0kai','seishin','hikikomori','0uter','phantasm','ketsumei','ryu.exe','tengoku','jigoku','sakusei','nemui','kawaii.exe','monsutaa','zaregoto','inori','kessoku','yabai','senpai.ql','ouka','fuyu.exe','akatsuki','ketsubou','hitori','TenZ','aspas','yay','Derke','Chronicle','ScreaM','Asuna','Hiko','WARDELL','ShahZaM','zombs','leaf','s1mple','ZywOo','NiKo','donk','m0NESY','sh1ro','Ax1Le','ropz','Twistzz','dev1ce','karrigan','Faker','Caps','Rekkles','Perkz','prodigy','wunder','clutchgod','headshot','TenZ fan','f0rest','vanity','zekken','Less','cauanzin','jawgemo','Boostio','bang','Cryo','sScary','Jinggg','f0rsaken','something','mindfreak'];
 const COLORS=['#ff5c7a','#ffb02e','#39a7ff','#c05cff','#3dff73','#ff7847','#4de8e0','#f2f2f2','#9dff57','#ff8ad8','#ffd52e','#6fc4ff'];
 const SPRITES=['woman','manblue','hero'];
 
@@ -118,26 +118,46 @@ function rollForTier(tier){ const r=Math.random();
 }
 
 /* ---------- matchmaking ---------- */
-const queue=[]; let queueCreatedAt=0, queueStartAt=0; const matches=new Map(); let matchSeq=1; const LOBBY_TARGET=8;
+const queue=[]; let queueCreatedAt=0, queueStartAt=0; const matches=new Map(); let matchSeq=1; const LOBBY_TARGET=12;
+let lobbyFakes=[], nextFakeAt=0, leaveAt=0, leaveDone=false; // lobby theatre: players wander in one at a time until it is honestly full
+function resetLobbySim(){ lobbyFakes=[]; nextFakeAt=0; leaveAt=0; leaveDone=false; }
+function pushFake(){ if(lobbyCount()>=LOBBY_TARGET)return false;
+  const used=new Set([...queue.map(c=>c.name),...lobbyFakes.map(f=>f.name)]);
+  let bn=choice(BOTNAMES), g=0; while(used.has(bn)&&g++<40)bn=choice(BOTNAMES); if(used.has(bn))return false;
+  lobbyFakes.push({name:bn,id:'u'+(100000+Math.floor(Math.random()*899999))}); return true; }
+function lobbyCount(){ return queue.length+lobbyFakes.length; }
 function planQueueStart(){
   const now=Date.now(), n=queue.length;
   if(!n){ queueCreatedAt=0; queueStartAt=0; return; }
   if(!queueCreatedAt)queueCreatedAt=now;
-  let target=queueCreatedAt+20000;                    // matches auto-launch after 20s in queue
-  if(n>=LOBBY_TARGET)target=now+400;                  // full lobby of 8: go immediately
-  queueStartAt=target;
+  queueStartAt=(n>=LOBBY_TARGET||lobbyCount()>=LOBBY_TARGET)?now+400:0; // no countdown, no auto-launch: a full 12 is the only trigger
 }
-function removeFromQueue(c){ const i=queue.indexOf(c); if(i>=0)queue.splice(i,1); c.queued=false; if(!queue.length){ queueCreatedAt=0; queueStartAt=0; } else planQueueStart(); }
+function removeFromQueue(c){ const i=queue.indexOf(c); if(i>=0)queue.splice(i,1); c.queued=false; if(!queue.length){ queueCreatedAt=0; queueStartAt=0; resetLobbySim(); } else planQueueStart(); }
 function queueStatus(){ const startsIn=queueStartAt?Math.max(0,Math.ceil((queueStartAt-Date.now())/1000)):30;
-  queue.forEach((c,i)=>wsSend(c,{type:'queue',count:queue.length,pos:i+1,target:LOBBY_TARGET,botsNeeded:Math.max(0,LOBBY_TARGET-queue.length),startsIn})); }
+  const members=[...queue.map(c=>c.name),...lobbyFakes.map(f=>f.name)]; // everybody in the lobby, in seat order
+  queue.forEach((c,i)=>wsSend(c,{type:'queue',count:lobbyCount(),pos:i+1,target:LOBBY_TARGET,members,botsNeeded:Math.max(0,LOBBY_TARGET-lobbyCount()),startsIn})); }
+function fakeJoinStep(now){ // players wander in ONE at a time (never two in the same instant), at irregular human intervals, until the lobby is full
+  if(!queue.length){ if(lobbyFakes.length)resetLobbySim(); return; }
+  if(lobbyCount()>=LOBBY_TARGET){ if(!queueStartAt||queueStartAt>now+600)queueStartAt=now+600; return; }
+  if(!leaveAt&&!leaveDone&&lobbyFakes.length>=3&&Math.random()<.2)leaveAt=now+4000+Math.random()*6000;
+  if(leaveAt&&!leaveDone&&now>=leaveAt&&lobbyFakes.length>1){ lobbyFakes.splice(Math.floor(Math.random()*lobbyFakes.length),1); leaveDone=true; queueStatus(); } // someone bails; searching just continues
+  if(!nextFakeAt){ nextFakeAt=now+1500+Math.random()*1500; return; }
+  if(now<nextFakeAt)return;
+  if(pushFake()){ const r=Math.random();
+    nextFakeAt=now+(r<.12?4200+Math.random()*3000:r<.3?900+Math.random()*700:1200+Math.random()*2300); // lulls, quick follow-ups, normal gaps
+    queueStatus(); }
+  else nextFakeAt=now+2000;
+}
 function launchLobby(){
   if(!queue.length)return;
-  const humans=queue.splice(0,Math.min(LOBBY_TARGET,queue.length)); // bots backfill to 8 inside startMatch
+  const humans=queue.splice(0,Math.min(LOBBY_TARGET,queue.length));
   humans.forEach(c=>c.queued=false);
-  startMatch(humans);
+  const fakes=lobbyFakes; resetLobbySim();
+  startMatch(humans,fakes);
   queueCreatedAt=0; queueStartAt=0; planQueueStart(); // anyone left queued forms the next lobby
 }
 setInterval(()=>{
+  fakeJoinStep(Date.now());
   if(queue.length&&queueStartAt&&Date.now()>=queueStartAt)launchLobby();
   queueStatus();
 },500);
@@ -146,7 +166,7 @@ function mkPlayer(id,name,sprite,color,client){
   return {id,name,sprite,color,client:client||null,isBot:!client,x:0,y:0,vx:0,vy:0,r:17,aim:0,hp:100,alive:true,
     inv:['pistol'],slot:0,ammos:[WEAPONS.pistol.mag],cool:0,reloadT:0,dashT:0,dashCD:0,dashDX:0,dashDY:0,bloom:0,recoilA:0,
     input:{mx:0,my:0,aim:0,fire:false},pinpoint:client?client.pinpoint:false,kills:0,dmg:0,lastHurt:99,hidden:false,inBush:false,revealT:0,
-    aiT:0,aiTX:0,aiTY:0,strafe:1,seeT:0,burst:0,skill:rnd(.35,.8),crateCD:0,swapCD:0,gunCD:0};
+    aiT:0,aiTX:0,aiTY:0,strafe:1,seeT:0,burst:0,skill:.25+Math.pow(Math.random(),1.6)*.65,crateCD:0,swapCD:0,gunCD:0};
 }
 function giveGun(m,p,key){
   if(p.inv.includes(key)){ p.slot=p.inv.indexOf(key); p.ammos[p.slot]=WEAPONS[key].mag; }
@@ -159,19 +179,23 @@ function giveGun(m,p,key){
   }
   p.reloadT=0; p.gunCD=1;
 }
-function startMatch(humans){
+function startMatch(humans,fakes){
+  fakes=fakes||[];
   const id='m'+(matchSeq++);
   const {obs,bushes}=buildObstacles();
   const m={id,players:new Map(),bullets:[],pickups:[],crates:[],obs,bushes,phase:'countdown',t:3.2,tickN:0,
     zone:{x:C.x,y:C.y,r:C.r,fx:C.x,fy:C.y,fr:C.r,tx:C.x,ty:C.y,tr:C.r,phase:0,wait:26,shrinking:false,prog:0},events:[],pending:[]};
-  const total=Math.max(8,humans.length);
+  const total=Math.max(LOBBY_TARGET,humans.length);
   const pads=[]; for(let i=0;i<total;i++){ const a=(i/total)*TAU+rnd(-.06,.06), d=rnd(2250,2620); pads.push([C.x+Math.cos(a)*d,C.y+Math.sin(a)*d]); }
   for(let i=pads.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pads[i],pads[j]]=[pads[j],pads[i]]; }
   humans.forEach((c,i)=>{ const p=mkPlayer(c.id,c.name,choice(SPRITES),COLORS[i%COLORS.length],c); p.x=pads[i][0]; p.y=pads[i][1]; p.aim=Math.atan2(C.y-p.y,C.x-p.x);
     c.match=id; c.pid=p.id; m.players.set(p.id,p); });
+  const avgLv=humans.reduce((a2,c2)=>a2+(c2.level||1),0)/Math.max(1,humans.length), LF=Math.max(0,Math.min(1,(avgLv-1)/29));
   const usedNames=new Set(humans.map(c=>c.name));
-  for(let i=humans.length;i<total;i++){ let bn=choice(BOTNAMES); while(usedNames.has(bn))bn=choice(BOTNAMES); usedNames.add(bn);
-    const b=mkPlayer('u'+(100000+Math.floor(Math.random()*899999)),bn,choice(SPRITES),COLORS[i%COLORS.length],null);
+  for(let i=humans.length;i<total;i++){ const fk=fakes[i-humans.length];
+    let bn, bid; if(fk&&!usedNames.has(fk.name)){ bn=fk.name; bid=fk.id; } else { bn=choice(BOTNAMES); while(usedNames.has(bn))bn=choice(BOTNAMES); bid='u'+(100000+Math.floor(Math.random()*899999)); }
+    usedNames.add(bn);
+    const b=mkPlayer(bid,bn,choice(SPRITES),COLORS[i%COLORS.length],null); b.skill=Math.max(.08,Math.min(.97,.18+Math.pow(Math.random(),1.5)*(.45+.4*LF)+LF*.15)); // level-scaled
     b.x=pads[i][0]; b.y=pads[i][1]; b.aim=Math.atan2(C.y-b.y,C.x-b.x); m.players.set(b.id,b); }
   for(let i=0;i<23;i++){ let x,y,n=0; const a=rnd(0,TAU), d=rnd(150,C.r-250); x=C.x+Math.cos(a)*d; y=C.y+Math.sin(a)*d;
     while(!clearOf(obs,x,y,44)&&n++<24){ x+=rnd(-60,60); y+=rnd(-60,60); }
@@ -202,7 +226,7 @@ function hurt(m,victim,dmg,attacker,crit){
   victim.hp-=dmg; victim.lastHurt=0; victim.revealT=.8;
   if(attacker&&attacker!==victim)attacker.dmg+=dmg;
   if(victim.hp<=0){ victim.alive=false; victim.hp=0; if(attacker&&attacker!==victim)attacker.kills++;
-    mEvent(m,{ev:'kill',killer:attacker?attacker.name:null,victim:victim.name,killerId:attacker?attacker.id:null,victimId:victim.id});
+    mEvent(m,{ev:'kill',killer:attacker?attacker.name:null,victim:victim.name,killerId:attacker?attacker.id:null,victimId:victim.id,wkey:attacker?attacker.inv[attacker.slot]:null});
     if(Math.random()<.5)m.pickups.push({kind:'med',x:victim.x,y:victim.y,vx:rnd(-60,60),vy:rnd(-60,60),life:16});
     checkEnd(m);
   }
@@ -214,7 +238,7 @@ function tryFire(m,f){
   f.cool=wp.rate; f.ammos[f.slot]--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1);
   const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38; // f.aim already includes the shooter's visible recoil (sent by the client)
-  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.088 : wp.spread+f.bloom+moveF*.03); // solo's formula
+  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.088 : wp.spread*(.78-.38*f.skill)+f.bloom+moveF*.03); // human-ish: worse than you, better than target dummies
   for(let p=0;p<wp.pellets;p++){
     const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.014+moveF*.02),.014+moveF*.02):eff+rnd(-spread,spread);
     m.bullets.push({x:mx,y:my,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg,owner:f,travel:0,wkey:key,explosive:!!wp.explosive,life:wp.range/wp.speed});
@@ -231,13 +255,18 @@ function botThink(m,f,dt){
   f.aiT-=dt;
   let foe=null,fd=1e9;
   m.players.forEach(o=>{ if(o!==f&&o.alive){ const d=Math.hypot(o.x-f.x,o.y-f.y); if(d<fd){fd=d;foe=o;} } });
-  const canSee=foe&&fd<640&&!(foe.hidden&&fd>115)&&!losBlocked(m.obs,f.x,f.y-26,foe.x,foe.y-26);
+  const canSee=foe&&fd<680&&!(foe.hidden&&fd>115)&&!losBlocked(m.obs,f.x,f.y-26,foe.x,foe.y-26);
   const outZ=Math.hypot(f.x-m.zone.x,f.y-m.zone.y)>m.zone.r;
   if(f.aiT<=0){ f.aiT=.15;
     if(outZ){ f.aiTX=m.zone.x+rnd(-80,80); f.aiTY=m.zone.y+rnd(-80,80); }
     else if(canSee){ const ideal=f.inv[f.slot]==='shotgun'?150:260, a=Math.atan2(foe.y-f.y,foe.x-f.x); f.aiTX=foe.x-Math.cos(a)*ideal; f.aiTY=foe.y-Math.sin(a)*ideal; }
     else { let best=null,bd=2400; m.crates.forEach(cr=>{ if(!cr.open){ const d=Math.hypot(cr.x-f.x,cr.y-f.y); if(d<bd){bd=d;best=cr;} } });
-      if(best&&(f.inv.length<2||Math.random()<.3)){ f.aiTX=best.x; f.aiTY=best.y; }
+      const WRANK={pistol:0,shotgun:1,uzi:2,m4:3,ak:4,lmg:5,rpg:6}; let bg=null,bd2=820;
+      m.pickups.forEach(pk=>{ if(pk.kind==='gun'&&!(pk.delay>0)){ const d=Math.hypot(pk.x-f.x,pk.y-f.y); if(d<bd2&&(WRANK[pk.wkey]||0)>(WRANK[f.inv[f.slot]]||0)){ bd2=d; bg=pk; } } });
+      let md=null,mdd=950; if(f.hp<62)m.pickups.forEach(pk=>{ if(pk.kind==='med'){ const d=Math.hypot(pk.x-f.x,pk.y-f.y); if(d<mdd){ mdd=d; md=pk; } } });
+      if(md){ f.aiTX=md.x; f.aiTY=md.y; }
+      else if(bg){ f.aiTX=bg.x; f.aiTY=bg.y; }
+      else if(best){ f.aiTX=best.x; f.aiTY=best.y; }
       else { const a=rnd(0,TAU), d=rnd(0,m.zone.r*.6); f.aiTX=m.zone.x+Math.cos(a)*d; f.aiTY=m.zone.y+Math.sin(a)*d; } }
     if(Math.random()<.18)f.strafe*=-1;
   }
@@ -249,11 +278,27 @@ function botThink(m,f,dt){
   let nearGun=null; m.pickups.forEach(pk=>{ if(pk.kind==='gun'&&Math.hypot(pk.x-f.x,pk.y-f.y)<58)nearGun=pk; });
   f.input.interact=!!(nearGun&&f.gunCD<=0);
   if(crateNear&&f.crateCD<=0){ openCrate(m,f,crateNear); }
+  let fleeing=false;
+  if(canSee&&foe){ // fight like a player: hold range, strafe, dash
+    const a=Math.atan2(foe.y-f.y,foe.x-f.x), wp2=f.inv[f.slot], ideal=wp2==='shotgun'?150:wp2==='rpg'?330:250;
+    f.strafeT=(f.strafeT||0)-dt; if(f.strafeT<=0){ f.strafeT=rnd(.7,1.8); const r2=Math.random(); f.strafe=r2<.18?0:(r2<.62?-f.strafe:f.strafe); } // sometimes just stands and shoots
+    fleeing=f.hp<26&&fd<320;
+    let rad=0; if(fleeing)rad=-1; else if(fd>ideal+70)rad=1; else if(fd<ideal-70)rad=-1;
+    let smx=Math.cos(a)*rad+Math.cos(a+Math.PI/2)*f.strafe*.85, smy=Math.sin(a)*rad+Math.sin(a+Math.PI/2)*f.strafe*.85;
+    const m2=Math.hypot(smx,smy); if(m2>1){ smx/=m2; smy/=m2; }
+    f.input.mx=smx; f.input.my=smy;
+    if(f.dashCD<=0&&((f.lastHurt<.45&&Math.random()<dt*.9)||Math.random()<dt*.02))f.input.dash=true; // mostly dashes when bullets start flying at them
+  }
   f.seeT=canSee?f.seeT+dt:0; f.burst-=dt;
-  if(canSee){ f.input.aim=Math.atan2((foe.y-28)-(f.y-28),foe.x-f.x)+rnd(-.02,.02);
+  if(canSee){ f.aimT=(f.aimT||0)-dt;
+    if(f.seeT<dt*1.5)f.aimErr=rnd(-(0.15-0.1*f.skill),0.15-0.1*f.skill); // first glance is way off, then settles
+    f.aimErr=clamp((f.aimErr||0)+rnd(-1,1)*dt*(0.24-0.13*f.skill),-(0.11-0.07*f.skill),0.11-0.07*f.skill); // hand sway
+    if(f.aimT<=0){ f.aimT=rnd(.06,.13); const bs=(WEAPONS[f.inv[f.slot]]||{}).speed||1350, lead=Math.min(.32,fd/bs)*(0.3+0.5*f.skill); // humans under-lead
+      f.input.aim=Math.atan2((foe.y-28+foe.vy*lead)-(f.y-28),foe.x+foe.vx*lead-f.x)+(f.aimErr||0); }
     if(f.inv.length>1){ const wantClose=fd<200; const wi=f.inv.findIndex(k=>wantClose?(k==='shotgun'||k==='uzi'):['m4','ak','lmg','rpg'].includes(k)); if(wi>=0) { f.slot=wi; } }
-    f.input.fire=f.seeT>.3&&f.burst<=0;
-    if(f.input.fire&&Math.random()<.1)f.burst=rnd(.3,.7);
+    f.input.fire=f.seeT>(.42-.22*f.skill)&&f.burst<=0;
+    if(fleeing)f.burst=Math.max(f.burst,rnd(.05,.2));
+    if(f.input.fire&&Math.random()<.09&&fd>140)f.burst=rnd(.25,.6);
   } else { f.input.fire=false; if(dm>30)f.input.aim=Math.atan2(my,mx); }
 }
 function tickMatch(m,dt){
@@ -266,7 +311,7 @@ function tickMatch(m,dt){
   if(live){ const z=m.zone; z.wait-=dt;
     if(!z.shrinking&&z.wait<=0&&z.phase<5){ const fr=[.68,.48,.32,.2,.1][z.phase]; z.fx=z.x; z.fy=z.y; z.fr=z.r; z.tr=C.r*fr;
       const maxOff=Math.max(0,(z.r-z.tr)*.7), a=rnd(0,TAU), off=rnd(0,maxOff); z.tx=z.x+Math.cos(a)*off; z.ty=z.y+Math.sin(a)*off; z.shrinking=true; z.prog=0; mEvent(m,{ev:'zone'}); }
-    else if(z.shrinking){ z.prog+=dt/30; const k=Math.min(1,z.prog); z.x=z.fx+(z.tx-z.fx)*k; z.y=z.fy+(z.ty-z.fy)*k; z.r=z.fr+(z.tr-z.fr)*k;
+    else if(z.shrinking){ z.prog+=dt/38; const k=Math.min(1,z.prog); z.x=z.fx+(z.tx-z.fx)*k; z.y=z.fy+(z.ty-z.fy)*k; z.r=z.fr+(z.tr-z.fr)*k;
       if(k>=1){ z.shrinking=false; z.phase++; z.wait=[26,22,20,18,16][Math.min(z.phase,4)]; } }
   }
   m.players.forEach(f=>{
@@ -292,7 +337,7 @@ function tickMatch(m,dt){
     if(live&&inp.swap&&f.swapCD<=0&&f.inv.length>1){ f.slot=(f.slot+1)%f.inv.length; f.reloadT=0; f.swapCD=.35; inp.swap=false; }
     if(live&&inp.reload){ startReload(f); inp.reload=false; }
     if(live&&inp.dash&&f.dashCD<=0){ let dx=f.vx,dy=f.vy; if(Math.hypot(dx,dy)<20){dx=Math.cos(f.aim);dy=Math.sin(f.aim);} const d=Math.hypot(dx,dy); f.dashDX=dx/d; f.dashDY=dy/d; f.dashT=.17; f.dashCD=2; inp.dash=false; }
-    if(live&&Math.hypot(f.x-m.zone.x,f.y-m.zone.y)>m.zone.r){ f.zoneAcc=(f.zoneAcc||0)+dt; if(f.zoneAcc>=1){ f.zoneAcc=0; hurt(m,f,[3,5,8,12,18][Math.min(m.zone.phase,4)],null); } }
+    if(live&&Math.hypot(f.x-m.zone.x,f.y-m.zone.y)>m.zone.r){ f.zoneAcc=(f.zoneAcc||0)+dt; if(f.zoneAcc>=1){ f.zoneAcc=0; hurt(m,f,[4,7,11,16,24][Math.min(m.zone.phase,4)],null); } }
   });
   for(let i=m.pending.length-1;i>=0;i--){ const pd=m.pending[i]; pd.t-=dt;
     if(pd.t<=0){ m.pickups.push({kind:'gun',wkey:pd.wkey,x:pd.x+rnd(-8,8),y:pd.y,vx:rnd(-70,70),vy:rnd(30,90),life:60,delay:0});
@@ -339,8 +384,8 @@ setInterval(()=>{ matches.forEach(m=>{ try{ tickMatch(m,1/60); }catch(e){ consol
 function handleMsg(c,msg){
   if(msg.type==='queue'){
     if(c.match)return;
-    c.name=(msg.name||'PLAYER').toString().slice(0,10).toUpperCase()||'PLAYER';
-    c.pinpoint=!!msg.pinpoint;
+    c.name=(msg.name||'PLAYER').toString().replace(/[<>&"']/g,'').slice(0,10).toUpperCase()||'PLAYER';
+    c.pinpoint=!!msg.pinpoint; c.level=Math.max(1,Math.min(999,parseInt(msg.level)||1));
     if(!c.queued){ c.queued=true; queue.push(c); planQueueStart(); }
     wsSend(c,{type:'queued',count:queue.length});
     queueStatus();
@@ -348,7 +393,6 @@ function handleMsg(c,msg){
   if(msg.type==='dequeue'){ removeFromQueue(c); }
   if(msg.type==='forfeit'&&c.match&&c.pid){ const m=matches.get(c.match); if(m){ const pl=m.players.get(c.pid); if(pl)pl.client=null;
     if(pl&&pl.alive){ pl.alive=false; pl.hp=0; mEvent(m,{ev:'left',victim:pl.name}); checkEnd(m); } } c.match=null; c.pid=null; }
-  if(msg.type==='start_now'&&c.queued){ launchLobby(); } // fill with bots right now, no waiting
   if(msg.type==='input'&&c.match&&c.pid){
     const m=matches.get(c.match); if(!m)return; const p=m.players.get(c.pid); if(!p)return;
     const i=msg.input||{};
