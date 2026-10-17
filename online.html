@@ -285,7 +285,7 @@
     <div class="mmbar"><div id="mmFill" style="width:0%"></div></div>
     <div class="tiny" id="mmInfo">Looking for fighters…</div>
     <div class="pix" id="mmCount" style="font-size:15px;margin-top:6px"></div>
-    <button class="btn alt small" id="cancelQBtn">✖ CANCEL</button>
+    <button class="btn alt" id="cancelQBtn" style="min-width:230px">⬅ CANCEL — BACK TO LOBBY</button>
     <div class="tiny" data-i18n="mmNote">Matches launch at 12 fighters, or automatically after 30 seconds.</div>
   </div>
 </div>
@@ -434,12 +434,16 @@ $('chPin').onchange=e=>{ CH.pinpoint=e.target.checked; saveCHOnline(); toast(CH.
 $('chReset').onclick=()=>{ CH={color:'#3dff73',dot:true,dotSize:2,len:8,thick:2,gap:6,dynamic:true,pinpoint:false}; saveCHOnline(); syncCHUI(); };
 syncCHUI();
 $('playOnlineBtn').onclick=()=>{ audio(); queueUp(); };
-$('cancelQBtn').onclick=()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'dequeue'})); $('queueOv').classList.remove('on'); $('playOnlineBtn').disabled=false; };
+$('cancelQBtn').onclick=backToMenu;
 addEventListener('keydown',e=>{ if((e.code==='Escape'||e.code==='KeyB')&&inMatch&&!myAlive&&$('spec').onclick)$('spec').click(); });
 $('spec').onclick=()=>{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'forfeit'}));
   inMatch=false; $('spec').style.display='none'; $('hud').classList.remove('on'); $('lobby').classList.add('on'); refreshProfile();
   if(ws&&ws.readyState===1)$('playOnlineBtn').disabled=false; };
-function backToMenu(){ $('endOv').classList.remove('on'); $('hud').classList.remove('on'); $('spec').style.display='none'; $('lobby').classList.add('on'); refreshProfile(); }
+function backToMenu(){ // universal escape: dequeue, close EVERY overlay, and put the lobby back — whatever state the screens are in
+  try{ if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'dequeue'})); }catch(e){}
+  $('queueOv').classList.remove('on'); $('endOv').classList.remove('on'); $('hud').classList.remove('on');
+  $('spec').style.display='none'; $('lobby').classList.add('on');
+  const pb=$('playOnlineBtn'); if(pb)pb.disabled=false; refreshProfile(); }
 $('menuBtn').onclick=backToMenu;
 $('endBack').onclick=backToMenu;
 $('againBtn').onclick=()=>{ $('endOv').classList.remove('on'); queueUp(); };

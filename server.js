@@ -201,7 +201,7 @@ function startMatch(humans,fakes,mode){
   for(let i=humans.length;i<total;i++){ const fk=fakes[i-humans.length];
     let bn, bid; if(fk&&!usedNames.has(fk.name)){ bn=fk.name; bid=fk.id; } else { bn=choice(BOTNAMES); while(usedNames.has(bn))bn=choice(BOTNAMES); bid='u'+(100000+Math.floor(Math.random()*899999)); }
     usedNames.add(bn);
-    const b=mkPlayer(bid,bn,choice(SPRITES),COLORS[i%COLORS.length],null); b.skill=Math.max(.08,Math.min(.97,.18+Math.pow(Math.random(),1.5)*(.45+.4*LF)+LF*.15)); // level-scaled
+    const b=mkPlayer(bid,bn,choice(SPRITES),COLORS[i%COLORS.length],null); b.skill=Math.max(.08,Math.min(.85,.14+Math.pow(Math.random(),1.6)*(.36+.26*LF)+LF*.08)); // level-scaled, softened: online bots are meant to be beatable
     b.x=pads[i][0]; b.y=pads[i][1]; b.aim=Math.atan2(C.y-b.y,C.x-b.x); m.players.set(b.id,b); }
   for(let i=0;i<23;i++){ let x,y,n=0; const a=rnd(0,TAU), d=rnd(150,C.r-250); x=C.x+Math.cos(a)*d; y=C.y+Math.sin(a)*d;
     while(!clearOf(obs,x,y,44)&&n++<24){ x+=rnd(-60,60); y+=rnd(-60,60); }
@@ -253,7 +253,7 @@ function tryFire(m,f){
   f.cool=wp.rate; f.ammos[f.slot]--; f.revealT=.8;
   const moveF=clamp(Math.hypot(f.vx,f.vy)/260,0,1);
   const eff=f.aim, mx=f.x+Math.cos(eff)*38, my=(f.y-28)+Math.sin(eff)*38; // f.aim already includes the shooter's visible recoil (sent by the client)
-  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.14 : wp.spread*(.78-.38*f.skill)+f.bloom+moveF*.03); // human-ish: worse than you, better than target dummies
+  const spread=f.pinpoint?0:(f.client? wp.spread*.35+f.bloom+moveF*moveF*.14 : wp.spread*(.92-.4*f.skill)+f.bloom+moveF*.03); // human-ish: worse than you, better than target dummies
   for(let p=0;p<wp.pellets;p++){
     const a=wp.pellets>1?eff+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.014+moveF*.034),.014+moveF*.034):eff+rnd(-spread,spread);
     m.bullets.push({x:mx,y:my,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg,owner:f,travel:0,wkey:key,explosive:!!wp.explosive,life:wp.range/wp.speed});
@@ -310,15 +310,26 @@ function botThink(m,f,dt){
       if(md){ f.aiTX=md.x; f.aiTY=md.y; }
       else if(bg){ f.aiTX=bg.x; f.aiTY=bg.y; }
       else if(best){ f.aiTX=best.x; f.aiTY=best.y; }
-      else { const a=rnd(0,TAU), d=rnd(0,m.zone.r*.6); f.aiTX=m.zone.x+Math.cos(a)*d; f.aiTY=m.zone.y+Math.sin(a)*d; } }
+      else { f.roamT=(f.roamT||0)-.15; if(f.roamX===undefined||f.roamT<=0||Math.hypot(f.roamX-f.x,f.roamY-f.y)<70){ const a=rnd(0,TAU), d=rnd(0,m.zone.r*.6); f.roamX=m.zone.x+Math.cos(a)*d; f.roamY=m.zone.y+Math.sin(a)*d; f.roamT=rnd(7,13); } f.aiTX=f.roamX; f.aiTY=f.roamY; } } // hold ONE roam target (re-rolling every tick made bots spin)
     // stick with the team: drifted away from every living teammate (and not hiding/hunting)? regroup
     { let tm=null,td2=1e9; m.players.forEach(o=>{ if(o!==f&&o.alive&&o.team===f.team){ const d2=Math.hypot(o.x-f.x,o.y-f.y); if(d2<td2){td2=d2;tm=o;} } });
       if(tm&&td2>480&&!outZ&&f.hideT<=0&&f.clock-f.memT>=6){ f.aiTX=tm.x+rnd(-130,130); f.aiTY=tm.y+rnd(-130,130); f.investigating=false; } }
     if(Math.random()<.18)f.strafe*=-1;
   }
-  let mx=0,my=0; const dx=f.aiTX-f.x, dy=f.aiTY-f.y, dm=Math.hypot(dx,dy);
+  let tx=f.aiTX, ty=f.aiTY;
+  if(f.detourT>0){ f.detourT-=dt; if(f.detourT>0){ tx=f.detourX; ty=f.detourY; } } // on a stuck-detour: walk the waypoint, not the wall
+  let mx=0,my=0; const dx=tx-f.x, dy=ty-f.y, dm=Math.hypot(dx,dy);
   if(dm>30){ mx=dx/dm; my=dy/dm; }
-  if(f.investigating&&dm<44){ f.investigating=false; f.holdT=.8; f.checkA=Math.PI; f.checkDur=.42; f.memT=f.clock-99; } // arrived: stop, clear behind
+  if(f.investigating&&Math.hypot(f.aiTX-f.x,f.aiTY-f.y)<44){ f.investigating=false; f.holdT=.8; f.checkA=Math.PI; f.checkDur=.42; f.memT=f.clock-99; } // arrived: stop, clear behind
+  f.stuckChk=(f.stuckChk||0)-dt; // no PROGRESS toward the goal (lapping a wall counts — moving is not progressing)? detour wide around the blocker
+  if(f.detCD>0)f.detCD-=dt;
+  if(f.stuckChk<=0){ f.stuckChk=.45; const distT=Math.hypot(f.aiTX-f.x,f.aiTY-f.y);
+    const trying=(mx||my)&&f.holdT<=0&&!(f.hideT>0&&f.inBush)&&!canSee&&!outZ&&distT>100&&f.detourT<=0&&(f.detCD||0)<=0; // never judge progress mid-detour — that's what made bots yo-yo along walls
+    const prog=(f.ldT==null?distT:f.ldT)-distT; f.ldT=distT;
+    if(prog>=10)f.detFlip=1; // making progress again: forget the side-switching
+    f.stuckT=trying&&prog<10?(f.stuckT||0)+.45:0;
+    if(f.stuckT>=1.3){ f.stuckT=0; f.ldT=null; const side=(f.strafe||1)*(f.detFlip||1); f.detFlip=(f.detFlip||1)*-1; // alternate sides: if left didn't work, go right next time
+      const sa=Math.atan2(f.aiTY-f.y,f.aiTX-f.x)+Math.PI/2*side; f.detourX=f.x+Math.cos(sa)*rnd(260,420); f.detourY=f.y+Math.sin(sa)*rnd(260,420); f.detourT=2.4; f.detCD=3.6; } }
   if(f.holdT>0){ f.holdT-=dt; mx=0; my=0; }
   if(f.hideT>0&&f.inBush){ mx=0; my=0; } // dug into the bush: stay put
   if((mx||my)&&pointBlocked(m.obs,f.x+mx*56,f.y+my*56,10)){ const ox=mx; mx=-my*f.strafe; my=ox*f.strafe; }
@@ -330,11 +341,14 @@ function botThink(m,f,dt){
   let fleeing=false;
   if(canSee&&foe){ // fight the 1v1 like a player: hold range, strafe, dash
     const a=Math.atan2(foe.y-f.y,foe.x-f.x), wp2=f.inv[f.slot], ideal=(wp2==='shotgun'?150:wp2==='rpg'?330:250)*(1.15-(f.aggro-.85));
-    f.strafeT=(f.strafeT||0)-dt; if(f.strafeT<=0){ f.strafeT=rnd(.7,1.8); const r2=Math.random(); f.strafe=r2<.18?0:(r2<.62?-f.strafe:f.strafe); } // sometimes just stands and shoots
+    f.strafeT=(f.strafeT||0)-dt; if(f.strafeT<=0){ f.strafeT=rnd(.55,1.3); const r2=Math.random(); f.strafe=r2<.24?0:(r2<.7?-f.strafe:f.strafe); } // changes direction or plants more often — no endless orbiting
     fleeing=f.hp<Math.round(34-f.aggro*8)&&fd<320;
     if(!(f.hideT>0&&f.inBush)){ // (if dug into a bush, don't dance out of it)
-      let rad=0; if(fleeing)rad=-1; else if(fd>ideal+70)rad=1; else if(fd<ideal-70)rad=-1;
-      let smx=Math.cos(a)*rad+Math.cos(a+Math.PI/2)*f.strafe*.85, smy=Math.sin(a)*rad+Math.sin(a+Math.PI/2)*f.strafe*.85;
+      f.orbT=(f._orbId===foe.id)?(f.orbT||0)+dt:0; f._orbId=foe.id; // how long have we been dancing with this one fighter?
+      if(f.orbT>2.2){ f.orbT=.6; f.strafe=f.strafe===0?(Math.random()<.5?-1:1):-f.strafe; f.orbPush=1.1; } // break the death-spiral: flip side + charge in
+      if(f.orbPush>0)f.orbPush-=dt;
+      let rad=0; if(fleeing)rad=-1; else if(f.orbPush>0)rad=1; else if(fd>ideal+70)rad=1; else if(fd<ideal-70)rad=-1;
+      let smx=Math.cos(a)*rad+Math.cos(a+Math.PI/2)*f.strafe*.72, smy=Math.sin(a)*rad+Math.sin(a+Math.PI/2)*f.strafe*.72;
       const m2=Math.hypot(smx,smy); if(m2>1){ smx/=m2; smy/=m2; }
       f.input.mx=smx; f.input.my=smy;
     }
@@ -342,12 +356,12 @@ function botThink(m,f,dt){
   }
   f.seeT=canSee?f.seeT+dt:0; f.burst-=dt;
   if(canSee){ f.aimT=(f.aimT||0)-dt;
-    if(f.seeT<dt*1.5)f.aimErr=rnd(-(0.15-0.1*f.skill),0.15-0.1*f.skill); // first glance is way off, then settles
-    f.aimErr=clamp((f.aimErr||0)+rnd(-1,1)*dt*(0.24-0.13*f.skill),-(0.11-0.07*f.skill),0.11-0.07*f.skill); // hand sway
-    if(f.aimT<=0){ f.aimT=rnd(.06,.13); const bs=(WEAPONS[f.inv[f.slot]]||{}).speed||1350, lead=Math.min(.32,fd/bs)*(0.3+0.5*f.skill); // humans under-lead
+    if(f.seeT<dt*1.5)f.aimErr=rnd(-(0.19-0.1*f.skill),0.19-0.1*f.skill); // first glance is way off, then settles
+    f.aimErr=clamp((f.aimErr||0)+rnd(-1,1)*dt*(0.3-0.15*f.skill),-(0.15-0.08*f.skill),0.15-0.08*f.skill); // hand sway (looser hands)
+    if(f.aimT<=0){ f.aimT=rnd(.06,.13); const bs=(WEAPONS[f.inv[f.slot]]||{}).speed||1350, lead=Math.min(.32,fd/bs)*(0.25+0.4*f.skill); // humans under-lead (these under-lead more)
       f.input.aim=Math.atan2((foe.y-28+foe.vy*lead)-(f.y-28),foe.x+foe.vx*lead-f.x)+(f.aimErr||0); }
     if(f.inv.length>1){ const wantClose=fd<200; const wi=f.inv.findIndex(k=>wantClose?(k==='shotgun'||k==='uzi'):['m4','ak','lmg','rpg'].includes(k)); if(wi>=0) { f.slot=wi; } }
-    f.input.fire=f.seeT>(.42-.22*f.skill)&&f.burst<=0;
+    f.input.fire=f.seeT>(.55-.22*f.skill)&&f.burst<=0;
     if(f.hideT>0&&f.inBush&&fd>190)f.input.fire=false; // hiding: don't give the bush away
     if(f.hidden&&fd>205&&f.hp>60)f.input.fire=false;   // ambush: let them walk in closer
     if(fleeing)f.burst=Math.max(f.burst,rnd(.05,.2));
@@ -357,7 +371,7 @@ function botThink(m,f,dt){
     let base=(mx||my)?Math.atan2(my,mx):f.input.aim;
     f.checkT-=dt;
     if(f.checkT<=0){ f.checkT=rnd(2.1,4.3)*(1.12-.3*f.skill); f.checkDur=.34; const r=Math.random(); f.checkA=r<.45?rnd(1.0,1.7):r<.8?-rnd(1.0,1.7):Math.PI+rnd(-.5,.5); }
-    let off=Math.sin(f.clock*.85)*.45;
+    let off=Math.sin(f.clock*.6)*.32;
     if(f.checkDur>0){ f.checkDur-=dt; off=f.checkA; }
     if(f.lastHurt<.5&&(f.memX||f.memY)){ base=Math.atan2(f.memY-f.y,f.memX-f.x); off=0; }
     f.input.aim=base+off;
@@ -401,6 +415,9 @@ function tickMatch(m,dt){
     if(live&&inp.dash&&f.dashCD<=0){ let dx=f.vx,dy=f.vy; if(Math.hypot(dx,dy)<20){dx=Math.cos(f.aim);dy=Math.sin(f.aim);} const d=Math.hypot(dx,dy); f.dashDX=dx/d; f.dashDY=dy/d; f.dashT=.17; f.dashCD=2; inp.dash=false; }
     if(live&&Math.hypot(f.x-m.zone.x,f.y-m.zone.y)>m.zone.r){ f.zoneAcc=(f.zoneAcc||0)+dt; if(f.zoneAcc>=1){ f.zoneAcc=0; hurt(m,f,[4,7,11,16,24][Math.min(m.zone.phase,4)],null); } }
   });
+  if(live){ const arr=[...m.players.values()].filter(p=>p.alive); // soft separation: overlapping fighters shove apart
+    for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++){ const A=arr[i],B=arr[j],dx=B.x-A.x,dy=B.y-A.y,d=Math.hypot(dx,dy);
+      if(d>0.01&&d<30){ const push=(30-d)*.5,ux=dx/d,uy=dy/d; A.x-=ux*push; A.y-=uy*push; B.x+=ux*push; B.y+=uy*push; } } }
   for(let i=m.pending.length-1;i>=0;i--){ const pd=m.pending[i]; pd.t-=dt;
     if(pd.t<=0){ m.pickups.push({kind:'gun',wkey:pd.wkey,x:pd.x+rnd(-8,8),y:pd.y,vx:rnd(-70,70),vy:rnd(30,90),life:60,delay:0});
       mEvent(m,{ev:'landed',name:pd.name,wkey:pd.wkey,x:Math.round(pd.x),y:Math.round(pd.y)}); m.pending.splice(i,1); } }
