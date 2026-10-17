@@ -42,10 +42,13 @@
  #count{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);font-size:clamp(70px,16vw,130px);color:#e07bff;text-shadow:6px 6px 0 #000;z-index:30;display:none}
  #toast{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--gold);padding:8px 14px;font-size:12px;opacity:0;transition:opacity .2s;max-width:92vw;text-align:center}
  #toast.on{opacity:1}
- #roll{position:absolute;top:110px;left:50%;transform:translateX(-50%);background:var(--panel);border:4px solid var(--gold);padding:10px 22px;text-align:center;display:none;box-shadow:0 8px 0 rgba(0,0,0,.6);z-index:5}
- #roll .rn{font-size:17px;margin-top:2px}
- #roll.pop{animation:rpop .18s steps(3)}
- @keyframes rpop{0%{transform:translateX(-50%) scale(1.25)}100%{transform:translateX(-50%) scale(1)}}
+ #roll{position:fixed;top:64px;left:50%;transform:translateX(-50%);width:min(340px,86vw);text-align:center;background:var(--panel);border:4px solid var(--gold);box-shadow:0 6px 0 rgba(0,0,0,.6);padding:10px;display:none;z-index:60}
+ #roll.on{display:block;animation:rollShake .09s steps(2) infinite}
+ @keyframes rollShake{50%{transform:translateX(calc(-50% + 2px))}}
+ #roll.done{animation:none}
+ #rollTitle{font-size:11px;letter-spacing:.3em;color:var(--gold)}
+ #rollImg{width:170px;height:74px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(3px 3px 0 #000)}
+ #rollName{font-size:17px}
  table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}td,th{padding:5px;border-bottom:1px solid #1b3050;text-align:left}th{color:var(--gold);font-size:10px;letter-spacing:.14em}
  .lay{display:grid;grid-template-columns:190px 1fr;gap:16px;text-align:left}
  @media(max-width:640px){.lay{grid-template-columns:1fr}.lobbyNav{flex-direction:row!important;flex-wrap:wrap}}
@@ -162,7 +165,7 @@
     <div class="pill"><div class="n pix" id="zoneN">🌐</div><div class="l">ONLINE</div></div>
   </div>
   <div id="feed"></div><div id="announce" class="pix"></div><div id="toast" class="pix"></div>
-  <div id="roll"><div style="font-size:10px;color:var(--dim);letter-spacing:.2em">🎰 CRATE ROLL</div><img id="rollImg" style="width:120px;height:56px;object-fit:contain;image-rendering:pixelated"><div class="rn pix" id="rollName">???</div></div>
+  </div>
   <canvas id="mmap" width="148" height="148" style="position:absolute;right:12px;bottom:12px;border:3px solid var(--line);background:rgba(6,14,10,.85)"></canvas>
   <div id="spec" class="card pix" style="position:absolute;top:70px;left:50%;transform:translateX(-50%);display:none;color:var(--gold);pointer-events:auto;cursor:pointer" title="Quit to menu"></div>
   <div id="prompt" class="pix" style="position:absolute;bottom:170px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--gold);padding:6px 12px;font-size:12px;display:none">E — OPEN CRATE</div>
@@ -372,20 +375,25 @@ const SFX={ pistol(){tone(660,.07,'square',.10,-420);noiseS(.04,.06,2600);}, sho
 let ws=null, myId=null, inMatch=false, snaps=[], mapData=null, latestSnap=null, matchPhase='lobby';
 const WSTATS={pistol:{rate:.21,speed:1350,spread:.014,pellets:1,kick:1.6,bloom:.006,shake:.25},shotgun:{rate:.78,speed:1180,spread:.11,pellets:7,kick:6,bloom:.02,shake:1},uzi:{rate:.048,speed:1330,spread:.052,pellets:1,kick:1.1,bloom:.006,shake:.22},m4:{rate:.082,speed:1480,spread:.016,pellets:1,kick:1.8,bloom:.005,shake:.35},ak:{rate:.105,speed:1400,spread:.032,pellets:1,kick:2.6,bloom:.008,shake:.5},lmg:{rate:.057,speed:1420,spread:.05,pellets:1,kick:2,bloom:.007,shake:.45},rpg:{rate:.95,speed:820,spread:.006,pellets:1,kick:8,bloom:.03,shake:1.2}};
 let rollIv=null, rollTo=null;
+const RARITY={pistol:'STARTER',shotgun:'RARE',uzi:'EPIC',m4:'EPIC',ak:'EPIC',lmg:'LEGENDARY',rpg:'LEGENDARY'};
+let rollHideTo=null, rollAwait=false, rollFinal=null, rollTickN=0, lastPredictAt=0;
+function predictRoll(){ const now=performance.now(); if(now-lastPredictAt<1600||rollAwait)return; lastPredictAt=now; showRoll(null); }
 function showRoll(finalKey){
-  const order=['pistol','shotgun','uzi','m4','ak','lmg','rpg'], el=$('roll');
-  clearInterval(rollIv); clearTimeout(rollTo); el.style.display='block';
-  let n=0; const total=20;
-  rollIv=setInterval(()=>{ const k=order[Math.floor(Math.random()*order.length)], w=WN[k]||WN.pistol;
-    $('rollImg').src=ASSETS[k]; $('rollName').textContent=w[0]; $('rollName').style.color=w[1];
-    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); tone(800+n*22,.035,'square',.06);
-    if(++n>=total){ clearInterval(rollIv); const fw=WN[finalKey]||WN.pistol;
-      $('rollImg').src=ASSETS[finalKey]; $('rollName').textContent='★ '+fw[0]+' ★'; $('rollName').style.color=fw[1];
-      el.style.borderColor=fw[1];
-      if(finalKey==='lmg'||finalKey==='rpg'){ [523,659,784,1046,1318].forEach((fq,i)=>setTimeout(()=>tone(fq,.14,'square',.12),i*70)); shake(.2); }
-      else tone(1046,.15,'square',.12);
-      rollTo=setTimeout(()=>{ el.style.display='none'; el.style.borderColor='var(--gold)'; },2100); }
-  },68);
+  const order=['shotgun','uzi','m4','ak','lmg','rpg'], el=$('roll');
+  clearInterval(rollIv); clearTimeout(rollTo); clearTimeout(rollHideTo);
+  el.className='on'; $('rollTitle').textContent='★ CRATE ROLL ★'; el.style.borderColor='#ffd52e'; tone(523,.09,'square',.09);
+  rollTickN=0; rollFinal=finalKey||null; rollAwait=!finalKey;
+  if(rollAwait)rollHideTo=setTimeout(()=>{ if(rollAwait){ clearInterval(rollIv); el.className=''; rollAwait=false; } },2000);
+  rollIv=setInterval(()=>{ rollTickN++;
+    if(rollTickN<=12||!rollFinal){ const k=order[Math.floor(Math.random()*order.length)], w=WN[k]||WN.pistol;
+      $('rollImg').src=ASSETS[k]; $('rollName').textContent=w[0]; $('rollName').style.color=w[1]; tone(700+Math.random()*60,.03,'square',.04); }
+    if(rollTickN>=15&&rollFinal){ clearInterval(rollIv); clearTimeout(rollHideTo); rollAwait=false; const fw=WN[rollFinal]||WN.pistol;
+      $('rollTitle').textContent=(RARITY[rollFinal]||'RARE')+'!'; $('rollName').textContent=fw[0]; $('rollName').style.color=fw[1];
+      $('rollImg').src=ASSETS[rollFinal]; el.className='on done'; el.style.borderColor=fw[1];
+      if(rollFinal==='lmg'||rollFinal==='rpg'){ [523,659,784,1046].forEach((fq,i2)=>setTimeout(()=>tone(fq,.12,'square',.11),i2*70)); }
+      else tone(880,.15,'square',.12);
+      rollTo=setTimeout(()=>{ el.className=''; },1300); }
+  },70);
 }
 let fxB=[],parts=[],floaters=[],casings=[],fxFlash=[],trauma=0,predHits=[],localCool=0,localBloom=0,hitmarkT=0,hurtFlash=0,myAlive=true,myPlace=0,lastKillerId=null,touchOpen=false,corpses=[],ghosts=[],dmgDirs=[],killMarkT=0,freezeT=0; const _prevR={}; let specId=null, specCycle=false;
 let localRecoilA=0, localKick=0, localDashT=0, localDashCD=0, localDashDX=1, localDashDY=0;
@@ -613,7 +621,7 @@ function onMsg(m){
       if(vp&&vp.x!==undefined){ corpses.push({x:vp.x,y:vp.y,sprite:vp.sprite,face:Math.cos(vp.aim||0)<0?-1:1,t:0}); if(corpses.length>14)corpses.shift(); burst(vp.x,vp.y-26,16,['#ff3b5c','#ffd52e','#ffffff'],300,.6,4); }
       if(m.killerId===myId){ SFX.killHit(); hitmarkT=.25; killMarkT=.32; freezeT=.05; shake(.16); if(vp)floaters.push({x:vp.x,y:vp.y-72,txt:'💀 ELIMINATED',crit:true,t:0}); }
       if(m.victimId===myId)lastKillerId=m.killerId; }
-    if(m.ev==='loot'&&m.name===(($('nameIn').value||'').trim().toUpperCase()))showRoll(m.wkey);
+    if(m.ev==='loot'&&m.name===(($('nameIn').value||'').trim().toUpperCase())){ if(rollAwait){ rollFinal=m.wkey; rollAwait=false; clearTimeout(rollHideTo); } else showRoll(m.wkey); }
     if(m.ev==='landed'&&m.name===(($('nameIn').value||'').trim().toUpperCase()))tone(150,.09,'square',.12);
     if(m.ev==='dropped')toast('⬇ Dropped your '+(WN[m.wkey]?WN[m.wkey][0]:m.wkey)+' — it\'s on the floor!',2400);
     if(m.ev==='pickup'&&m.pId===myId)toast('🔫 Picked up '+(WN[m.wkey]?WN[m.wkey][0]:m.wkey),1800);
@@ -743,10 +751,10 @@ function localFireFX(dt){
   localKick=1;
   const effAim=myAim+localRecoilA;
   const srvB=(latestSnap&&latestSnap.self&&latestSnap.self.bloom)||0;
-  const spread=CH.pinpoint?0:st.spread*.35+Math.max(localBloom,srvB)+moveF*moveF*.088; // solo's player spread
+  const spread=CH.pinpoint?0:st.spread*.35+Math.max(localBloom,srvB)+moveF*moveF*.14; // solo's player spread
   const gx=pred.x, gy=pred.y-28;
   for(let p=0;p<st.pellets;p++){
-    const a=st.pellets>1?effAim+((p/(st.pellets-1))-.5)*st.spread*1.7+(Math.random()*2-1)*(.018+moveF*.028):effAim+(Math.random()*2-1)*spread;
+    const a=st.pellets>1?effAim+((p/(st.pellets-1))-.5)*st.spread*1.7+(Math.random()*2-1)*(.018+moveF*.045):effAim+(Math.random()*2-1)*spread;
     fxB.push({x:gx+Math.cos(a)*36,y:gy+Math.sin(a)*36,vx:Math.cos(a)*st.speed,vy:Math.sin(a)*st.speed,t:0,life:.55,wkey:s2.weapon});
   }
   burst(gx+Math.cos(effAim)*40,gy+Math.sin(effAim)*40,s2.weapon==='shotgun'?8:3,['#ffe9a3','#ffb02e'],160,.14,2);
@@ -755,7 +763,7 @@ function localFireFX(dt){
   { const ca=effAim+Math.PI/2+(Math.random()-.5)*.8, cv=50+Math.random()*60; // ejecting shell casing
     casings.push({x:gx,y:gy,vx:Math.cos(ca)*cv,vy:Math.sin(ca)*cv-40,t:0,rot:Math.random()*6}); }
   (SFX[s2.weapon]||SFX.pistol)(); shake((st.shake||.3)*(.2+moveF*.3)); // solo camera trauma
-  localBloom=CH.pinpoint?0:Math.min(.085,localBloom+(st.bloom||.006)*(1+moveF*2.2));
+  localBloom=CH.pinpoint?0:Math.min(.085,localBloom+(st.bloom||.006)*(1+moveF*3.4));
 }
 /* client prediction + collisions */
 function collideClient(x,y){
@@ -841,6 +849,7 @@ function frame(now){
     else if((latestSnap.crates||[]).some(c=>!c.open&&Math.hypot(c.x-pred.x,c.y-pred.y)<85))promptTxt='E — OPEN CRATE';
   }
   $('prompt').textContent=promptTxt; $('prompt').style.display=promptTxt?'block':'none';
+    if(promptTxt==='E — OPEN CRATE'&&(keys.KeyE||touchOpen))predictRoll();
   { const nowP=performance.now(); // dash afterimages + footstep dust (players computed above)
     for(const p of players){ if(!p.alive||p.x===undefined)continue;
       const px=p.id===myId&&pred?pred.x:p.x, py=p.id===myId&&pred?pred.y:p.y;
@@ -953,7 +962,7 @@ function drawCross(){
   if(!inMatch||matchPhase==='ended')return;
   if(matchMedia('(pointer:coarse)').matches)return;
   const srvBloom=(latestSnap&&latestSnap.self&&latestSnap.self.bloom)||0;
-  const dyn=CH.pinpoint?0:(CH.dynamic?4+Math.max(localBloom,srvBloom)*280+(window._moveF||0)*(window._moveF||0)*20:0);
+  const dyn=CH.pinpoint?0:(CH.dynamic?4+Math.max(localBloom,srvBloom)*280+(window._moveF||0)*(window._moveF||0)*60:0);
   ctx.save(); ctx.translate(mouse.x,mouse.y); ctx.globalAlpha=.95; ctx.strokeStyle=CH.color; ctx.lineWidth=CH.thick;
   const g=CH.gap+dyn, len=CH.len;
   ctx.beginPath(); ctx.moveTo(-g-len,0); ctx.lineTo(-g,0); ctx.moveTo(g,0); ctx.lineTo(g+len,0); ctx.moveTo(0,-g-len); ctx.lineTo(0,-g); ctx.moveTo(0,g); ctx.lineTo(0,g+len); ctx.stroke();
@@ -964,7 +973,7 @@ setInterval(()=>{ const cv=$('mmap'); if(!cv||!latestSnap||!mapData)return; cons
   g.clearRect(0,0,S,S); g.fillStyle='rgba(6,20,12,.9)'; g.fillRect(0,0,S,S);
   g.beginPath(); g.arc(cx,cy,mapData.map.r*sc,0,TAU); g.fillStyle='#3f8f42'; g.fill();
   const z=latestSnap.zone; g.beginPath(); g.arc(cx+(z.x-mapData.map.cx)*sc,cy+(z.y-mapData.map.cy)*sc,Math.max(2,z.r*sc),0,TAU); g.strokeStyle='#e07bff'; g.lineWidth=2; g.stroke();
-  latestSnap.players.forEach(p2=>{ if(!p2.alive||p2.x===undefined)return; g.fillStyle=p2.id===myId?'#3dff73':'#ff5c7a'; g.fillRect(cx+(p2.x-mapData.map.cx)*sc-2,cy+(p2.y-mapData.map.cy)*sc-2,4,4); });
+  latestSnap.players.forEach(p2=>{ if(!p2.alive||p2.x===undefined||p2.id!==myId)return; g.fillStyle='#3dff73'; g.fillRect(cx+(p2.x-mapData.map.cx)*sc-2,cy+(p2.y-mapData.map.cy)*sc-2,4,4); }); // your dot only — the map never reveals enemies
 },140);
 /* ================= PLAYABLE TUTORIAL (local training island) ================= */
 const TW={cx:800,cy:800,r:720};
@@ -1025,7 +1034,7 @@ function tutComplete(){
 function endTutPlay(finished){
   if(finished){ try{ localStorage.setItem('pr_trained','1'); localStorage.removeItem('pr_tut_step'); }catch(e){} }
   if(TP)TP.active=false; TP=null;
-  clearInterval(rollIv); clearTimeout(rollTo); $('roll').style.display='none';
+  clearInterval(rollIv); clearTimeout(rollTo); clearTimeout(rollHideTo); rollAwait=false; $('roll').className='';
   $('tutUI').style.display='none';
   if(finished){ tone(523,.15,'square',.13); setTimeout(()=>tone(784,.15,'square',.13),120); setTimeout(()=>tone(1046,.28,'square',.14),240); }
   tutIdx=0; showTutStep(); $('tutOv').classList.add('on'); // -> full card deck from 1/8 (welcome..survive, settings + online guides, banner)
@@ -1075,7 +1084,7 @@ function tutLoop(now){
   if(TP.step===0&&Math.hypot(T.x-TP.px,T.y-TP.py)<42)tutComplete();
   else if(TP.step===1&&TP.dashed&&Math.hypot(T.x-TP.px,T.y-TP.py)<46)tutComplete();
   else if(TP.step===2&&TP.dummies.every(d=>!d.alive))tutComplete();
-  else if(TP.step===3&&keys.KeyE&&Math.hypot(TP.crate.x-TP.px,TP.crate.y-TP.py)<82&&TP.rolling<=0){ TP.crate.open=true; TP.rolling=1.37; showRoll('ak'); }
+  else if(TP.step===3&&keys.KeyE&&Math.hypot(TP.crate.x-TP.px,TP.crate.y-TP.py)<82&&TP.rolling<=0){ TP.crate.open=true; TP.rolling=1.06; showRoll('ak'); }
   else if(TP.step===4&&keys.KeyE&&TP.pickup&&Math.hypot(TP.pickup.x-TP.px,TP.pickup.y-TP.py)<58){ TP.inv.push('ak'); TP.weapon='ak'; TP.pickup=null; tutComplete(); }
   else if(TP.step===5&&swapQ){ swapQ=false; TP.weapon=TP.weapon==='ak'?'pistol':'ak'; tutComplete(); }
   else if(TP.step===6){ if(TP.hidden){ TP.holdT+=dt; if(TP.holdT>1)tutComplete(); } else TP.holdT=0; }
@@ -1159,5 +1168,6 @@ function showLangFirst(){
 let _langSaved=true; try{ _langSaved=!!localStorage.getItem('pr_lang'); }catch(e){}
 if(_langSaved)proceedBoot(); else showLangFirst();
 </script>
+<div id="roll"><div id="rollTitle">★ CRATE ROLL ★</div><img id="rollImg" alt=""><div id="rollName" class="pix">???</div></div>
 </body>
 </html>

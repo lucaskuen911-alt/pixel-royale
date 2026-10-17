@@ -507,7 +507,7 @@ function makeFighter(x,y,sprite,name,isPlayer,color){
   const f={x,y,vx:0,vy:0,r:17,sprite,name,isPlayer:!!isPlayer,color:color||'#3dff73',inv:['pistol'],slot:0,ammos:[WEAPONS.pistol.mag],seeT:0,burstPause:0,swapT:0,lastHurtT:99,
     hp:100,maxhp:100,alive:true,aim:rnd(0,TAU),wantAim:0,face:1,walk:0,flash:0,bloom:0,kickBack:0,recoilA:0,
     cool:0,reloadT:0,dashT:0,dashCD:0,dashDX:0,dashDY:0,
-    aiT:rnd(0,.2),aiTX:x,aiTY:y,strafe:1,strafeT:0,skill:(()=>{ let lv=1; try{ let r=+localStorage.getItem('pr_xp')||0; while(r>=100+(lv-1)*50){ r-=100+(lv-1)*50; lv++; } }catch(e){} const LF=Math.max(0,Math.min(1,(lv-1)/29)); return Math.max(.08,Math.min(.95,.18+Math.pow(Math.random(),1.5)*(.45+.4*LF)+LF*.15)); })(),crateT:0,zoneTick:0,wanderT:0,
+    aiT:rnd(0,.2),aiTX:x,aiTY:y,strafe:1,strafeT:0,skill:(()=>{ let lv=1; try{ let r=+localStorage.getItem('pr_xp')||0; while(r>=100+(lv-1)*50){ r-=100+(lv-1)*50; lv++; } }catch(e){} const LF=Math.max(0,Math.min(1,(lv-1)/29)); return Math.max(.1,Math.min(.96,.22+Math.pow(Math.random(),1.5)*(.48+.42*LF)+LF*.17)); })(),crateT:0,zoneTick:0,wanderT:0,
     dmgDealt:0,lastHitBy:null,lastHitT:0,spawnShield:true,inBush:false,hidden:false,revealT:0};
   Object.defineProperty(f,'weapon',{get(){return this.inv[this.slot];},set(v){this.inv[this.slot]=v;}});
   Object.defineProperty(f,'ammo',{get(){return this.ammos[this.slot];},set(v){this.ammos[this.slot]=v;}});
@@ -607,9 +607,9 @@ function tryFire(f){
   f.recoilA=(f.recoilA||0)+rnd(-1,1)*wp.kick*(f.isPlayer?(CH.pinpoint?0:.011+moveF*.038):.004);
   const effAim=f.aim+f.recoilA;
   const m=muzzleOf(f);
-  const spread=(f.isPlayer&&CH.pinpoint)?0 : f.isPlayer ? wp.spread*.35+f.bloom+moveF*moveF*.088 : wp.spread+f.bloom+moveF*.03;
+  const spread=(f.isPlayer&&CH.pinpoint)?0 : f.isPlayer ? wp.spread*.35+f.bloom+moveF*moveF*.14 : wp.spread+f.bloom+moveF*.03;
   for(let p=0;p<wp.pellets;p++){
-    const a=wp.pellets>1 ? effAim+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.018+moveF*.028),.018+moveF*.028) : effAim+rnd(-spread,spread);
+    const a=wp.pellets>1 ? effAim+((p/(wp.pellets-1))-.5)*wp.spread*1.7+rnd(-(.018+moveF*.045),.018+moveF*.045) : effAim+rnd(-spread,spread);
     const crit=!wp.explosive&&Math.random()<.08;
     bullets.push({x:m.x,y:m.y,px:m.x,py:m.y,vx:Math.cos(a)*wp.speed,vy:Math.sin(a)*wp.speed,dmg:wp.dmg*(crit?1.5:1),crit,travel:0,owner:f,life:wp.range/wp.speed,wkey:f.weapon,knock:wp.kick,explosive:!!wp.explosive,blast:wp.blast||0});
     if(bullets.length>260)bullets.shift();
@@ -619,7 +619,7 @@ function tryFire(f){
   if(tracers.length>60)tracers.shift();
   spawnParts(m.x,m.y,wp.pellets>1?6:2,['#ffd52e','#ff9f2e','#fff'],170,.13,3);
   casing(m.gx,m.gy,effAim);
-  f.bloom=(f.isPlayer&&CH.pinpoint)?0:Math.min(.085,f.bloom+wp.bloom*(1+moveF*2.2)); // spray builds way faster on the move
+  f.bloom=(f.isPlayer&&CH.pinpoint)?0:Math.min(.085,f.bloom+wp.bloom*(1+moveF*3.4)); // spray builds way faster on the move
   f.kickBack=1;
   const push=wp.kick*9*(1+moveF*1.1);
   f.vx-=Math.cos(effAim)*push; f.vy-=Math.sin(effAim)*push;
@@ -718,7 +718,7 @@ function finishRoll(r){
   if(r.result==='lmg')SFX.legendary(); else tone(880,.15,'square',.15,300);
   const seq=++rollBannerSeq;
   setTimeout(()=>{ if(seq===rollBannerSeq)$('roll').className=''; },1300);
-  toast('Walk over the '+WEAPONS[r.result].name+' to equip it!',2400);
+  toast('Your '+WEAPONS[r.result].name+' landed on the floor — press E to pick it up!',2600);
 }
 function swapWeapon(f){
   if(!f.alive||f.inv.length<2||f.swapT>0)return;
@@ -729,7 +729,9 @@ function swapWeapon(f){
 function giveGun(f,key){
   if(f.inv.includes(key)){ f.slot=f.inv.indexOf(key); f.ammo=WEAPONS[key].mag; }
   else if(f.inv.length<2){ f.inv.push(key); f.ammos.push(WEAPONS[key].mag); f.slot=f.inv.length-1; }
-  else { f.inv[f.slot]=key; f.ammos[f.slot]=WEAPONS[key].mag; }
+  else { const old=f.inv[f.slot]; // hands full: the gun in your hands drops to the floor — never deleted
+    pickups.push({kind:'gun',wkey:old,x:f.x+rnd(-14,14),y:f.y+10,vx:rnd(-50,50),vy:rnd(-50,50),life:60,bob:0,delay:1.1,dropBy:f,ignoreT:3});
+    f.inv[f.slot]=key; f.ammos[f.slot]=WEAPONS[key].mag; }
   f.reloadT=0; f.cool=.12;
   spawnParts(f.x,f.y-30,16,[WEAPONS[key].color,'#fff'],250,.55,4);
   if(f.isPlayer){ updateHUD(true); dmgNum(f.x,f.y-84,WEAPONS[key].name+'!',WEAPONS[key].color,true); tone(660,.1,'square',.14); tone(990,.16,'square',.14,0,.08); }
@@ -785,7 +787,11 @@ function tryDash(){
   spawnParts(f.x,f.y-24,10,['#4de8e0','#fff'],180,.35,4);
 }
 function botDash(f,dx,dy){ if(f.dashCD>0)return; const m=Math.hypot(dx,dy)||1; f.dashDX=dx/m; f.dashDY=dy/m; f.dashT=.17; f.dashCD=rnd(2.4,4); }
-function playerInteract(){ if(state!=='playing'||!player||!player.alive)return; const c=nearestCrate(player,78); if(c)openCrate(player,c); }
+function playerInteract(){ if(state!=='playing'||!player||!player.alive)return;
+  // floor guns are picked up by hand: E grabs the nearest loose gun (hands full? the gun you're holding drops — see giveGun)
+  let gp=null,gd=62; for(const p of pickups){ if(p.kind!=='gun'||(p.delay||0)>0||(p.dropBy===player&&(p.ignoreT||0)>0))continue; const d=Math.hypot(p.x-player.x,p.y-player.y); if(d<gd){gd=d;gp=p;} }
+  if(gp){ giveGun(player,gp.wkey); pickups.splice(pickups.indexOf(gp),1); return; }
+  const c=nearestCrate(player,78); if(c)openCrate(player,c); }
 function flashVig(){ $('vig').style.opacity=.85; setTimeout(()=>$('vig').style.opacity=player&&player.hp<32?.55:0,90); }
 
 const isTouch=()=>matchMedia('(pointer:coarse)').matches||'ontouchstart'in window;
@@ -910,7 +916,7 @@ function botControl(f,dt){
   f.seeT=canSee?f.seeT+dt:0;
   if(canSee){
     const lead=.14*f.skill, tx=foe.x+foe.vx*lead, ty=foe.y+foe.vy*lead;
-    const err=(1-f.skill)*.09;
+    const err=(1-f.skill)*.082;
     f.wantAim=Math.atan2(ty-f.y,tx-f.x)+Math.sin(matchTime*2.1+f.x)*err*.4;
     if(fd<wp.range+120){ const reacted=f.seeT>(.48-f.skill*.24);
       if(reacted&&f.burstPause<=0){ const before=f.ammo; tryFire(f); if(f.ammo<before&&Math.random()<.16)f.burstPause=rnd(.35,.85); }
@@ -958,9 +964,10 @@ function update(dt){
   crates.forEach(c=>{ c.bob+=dt*2.4; if(c.open){ c.respawn-=dt; if(c.respawn<=0){c.open=false; spawnParts(c.x,c.y-16,8,['#ffd52e'],160,.4,4);} } });
   for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.life-=dt; p.bob+=dt*3;
     p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.01,dt); p.vy*=Math.pow(.01,dt); collideObstacles(p.r?{x:p.x,y:p.y,r:10,vx:0,vy:0,set x(v){p.x=v},get x(){return p.x}}:p);
+    if(p.delay>0)p.delay-=dt; if(p.ignoreT>0)p.ignoreT-=dt;
     let taken=false;
     for(const f of fighters){ if(!f.alive)continue; if(Math.hypot(f.x-p.x,f.y-p.y)<40){
-      if(p.kind==='gun'&&f.weapon!==p.wkey){ giveGun(f,p.wkey); taken=true; break; }
+      if(p.kind==='gun'&&!f.isPlayer&&f.weapon!==p.wkey&&!(p.delay>0)&&!(p.dropBy===f&&p.ignoreT>0)){ giveGun(f,p.wkey); taken=true; break; }
       if(p.kind==='med'&&f.hp<f.maxhp){ f.hp=Math.min(f.maxhp,f.hp+34); dmgNum(f.x,f.y-80,'+34','#3dff73'); spawnParts(f.x,f.y-28,10,['#3dff73','#fff'],180,.5,4); if(f.isPlayer)tone(740,.14,'sine',.15,220); taken=true; break; }
     } }
     if(taken||p.life<=0)pickups.splice(i,1);
@@ -1027,7 +1034,8 @@ function render(){
     else { const wp=WEAPONS[p.wkey], img=GUNR[p.wkey];
       ctx.strokeStyle=wp.color; ctx.globalAlpha=.55+.3*Math.sin(p.bob*2); ctx.lineWidth=3; ctx.strokeRect(p.x-wp.gw/2-5,p.y-15+bob,wp.gw+10,25); ctx.globalAlpha=1;
       if(img){ const gh=wp.gw*img.height/img.width; ctx.drawImage(img,p.x-wp.gw/2,p.y-2+bob-gh/2,wp.gw,gh); }
-      ctx.fillStyle=wp.color; ctx.font='bold 9px "Courier New"'; ctx.textAlign='center'; ctx.fillText(wp.name,p.x,p.y+22+bob); }
+      ctx.fillStyle=wp.color; ctx.font='bold 9px "Courier New"'; ctx.textAlign='center'; ctx.fillText(wp.name,p.x,p.y+22+bob);
+      if(player&&player.alive&&Math.hypot(p.x-player.x,p.y-player.y)<62&&!(p.delay>0)&&!(p.dropBy===player&&(p.ignoreT||0)>0)){ ctx.fillStyle='#ffffff'; ctx.font='bold 10px "Courier New"'; ctx.fillText('▼ E — PICK UP',p.x,p.y-28+bob); } }
   }
   ctx.fillStyle='#ffd52e'; for(const c of casings){ ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.rot); ctx.fillRect(-3,-1,6,2); ctx.restore(); }
   // depth-sorted: obstacles + fighters
@@ -1165,7 +1173,7 @@ function drawFighter(f){
 }
 function drawCrosshair(){
   if(state!=='playing'||isTouch()||!player||!player.alive)return;
-  const dyn=(CH.pinpoint||!CH.dynamic)?0:(player.bloom*330+Math.pow(clamp(Math.hypot(player.vx,player.vy)/260,0,1),2)*46+(player.cool>0?3:0));
+  const dyn=(CH.pinpoint||!CH.dynamic)?0:(player.bloom*330+Math.pow(clamp(Math.hypot(player.vx,player.vy)/260,0,1),2)*85+(player.cool>0?3:0));
   if(hitmarkT>0){ const keep=CH.color; CH.color=hitmarkKill?'#ffd52e':'#ff3b5c'; drawCHShape(ctx,mouse.x,mouse.y,dyn); CH.color=keep; }
   else drawCHShape(ctx,mouse.x,mouse.y,dyn);
   ctx.save(); ctx.translate(mouse.x,mouse.y);
@@ -1223,7 +1231,7 @@ function drawMinimap(){
   crates.forEach(cr=>{ if(cr.open)return; mm.fillStyle=cr.tier==='Neon'?'#4de8e0':cr.tier==='Camo'?'#ffd52e':'#c98a2e'; mm.fillRect(ox(cr.x)-1.5,oy(cr.y)-1.5,3,3); });
   mm.strokeStyle='#fff'; mm.lineWidth=2; mm.beginPath(); mm.arc(ox(zone.x),oy(zone.y),Math.max(3,zone.r*sc),0,TAU); mm.stroke();
   if(zone.shrinking){ mm.strokeStyle='#e07bff'; mm.beginPath(); mm.arc(ox(zone.tx),oy(zone.ty),Math.max(3,zone.tr*sc),0,TAU); mm.stroke(); }
-  fighters.forEach(f=>{ if(!f.alive)return; mm.fillStyle=f.isPlayer?'#3dff73':f.color; mm.beginPath(); mm.arc(ox(f.x),oy(f.y),f.isPlayer?3.4:2.2,0,TAU); mm.fill(); });
+  fighters.forEach(f=>{ if(!f.alive||!f.isPlayer)return; mm.fillStyle='#3dff73'; mm.beginPath(); mm.arc(ox(f.x),oy(f.y),3.4,0,TAU); mm.fill(); }); // the map shows only YOU — enemy positions are never given away
 }
 function announce(txt,color){ const a=$('announce'); a.textContent=txt; a.style.color=color||'#ffd52e'; a.classList.remove('show'); void a.offsetWidth; a.classList.add('show'); }
 let toastTO=null;
