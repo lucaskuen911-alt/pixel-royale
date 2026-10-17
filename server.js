@@ -167,7 +167,7 @@ setInterval(()=>{
 function mkPlayer(id,name,sprite,color,client){
   return {id,name,sprite,color,client:client||null,isBot:!client,x:0,y:0,vx:0,vy:0,r:17,aim:0,hp:100,alive:true,
     inv:['pistol'],slot:0,ammos:[WEAPONS.pistol.mag],cool:0,reloadT:0,dashT:0,dashCD:0,dashDX:0,dashDY:0,bloom:0,recoilA:0,
-    input:{mx:0,my:0,aim:0,fire:false},pinpoint:client?client.pinpoint:false,kills:0,dmg:0,team:0,lastHurt:99,hidden:false,inBush:false,revealT:0,
+    input:{mx:0,my:0,aim:0,fire:false},pinpoint:client?client.pinpoint:false,kills:0,dmg:0,team:0,place:null,lastHurt:99,hidden:false,inBush:false,revealT:0,
     aiT:0,aiTX:0,aiTY:0,strafe:1,seeT:0,burst:0,skill:.25+Math.pow(Math.random(),1.6)*.65,crateCD:0,swapCD:0,gunCD:0,
     clock:0,memX:0,memY:0,memT:-99,foeId:null,aggro:.85+Math.random()*.3,checkT:2,checkA:0,checkDur:0,hideT:0,hideCD:0,hideTX:0,hideTY:0,holdT:0,investigating:false};
 }
@@ -180,7 +180,7 @@ function giveGun(m,p,key){
     p.inv[p.slot]=key; p.ammos[p.slot]=WEAPONS[key].mag;
     if(p.client)wsSend(p.client,{type:'event',ev:'dropped',wkey:old});
   }
-  p.reloadT=0; p.gunCD=1;
+  p.reloadT=0; p.gunCD=.35;
 }
 function startMatch(humans,fakes,mode){
   fakes=fakes||[]; mode=MODES[mode]?mode:'solo'; const teamSize=MODES[mode];
@@ -217,14 +217,16 @@ function aliveCount(m){ let n=0; m.players.forEach(p=>{ if(p.alive)n++; }); retu
 function checkEnd(m){
   if(m.phase!=='live')return;
   const alive=[...m.players.values()].filter(p=>p.alive);
+  m.players.forEach(p=>{ if(!p.alive&&p.place==null)p.place=alive.length+1; }); // TRUE placement: recorded the moment you drop = how long you survived
   const aliveTeams=new Set(alive.map(p=>p.team));
   if(aliveTeams.size<=1){ m.phase='ended'; m.t=12;
-    const tstats=new Map();
-    m.players.forEach(p=>{ const st=tstats.get(p.team)||{k:0,d:0,a:0}; st.k+=p.kills; st.d+=p.dmg; if(p.alive)st.a++; tstats.set(p.team,st); });
-    const teamOrder=[...tstats.keys()].sort((x,y)=>{ const A=tstats.get(x),B=tstats.get(y); return (B.a-A.a)||(B.k-A.k)||(B.d-A.d); });
+    alive.forEach(p=>{ if(p.place==null)p.place=1; }); // the last one standing takes #1
+    const used=new Set([...m.players.values()].map(p=>p.place).filter(x=>x!=null));
+    let slot=m.players.size; // anyone unplaced (left during the countdown, etc.) takes a leftover slot, best kills first
+    [...m.players.values()].filter(p=>p.place==null).sort((a,b)=>(b.kills-a.kills)||(b.dmg-a.dmg)).forEach(p=>{ while(used.has(slot))slot--; p.place=slot; used.add(slot); });
     const winTeam=alive.length?alive[0].team:-1;
-    const standings=[...m.players.values()].map(p=>({place:teamOrder.indexOf(p.team)+1,name:p.name,kills:p.kills,dmg:Math.round(p.dmg),win:p.team===winTeam,team:p.team,id:p.id}))
-      .sort((a,b)=>(a.place-b.place)||(b.kills-a.kills)||(b.dmg-a.dmg));
+    const standings=[...m.players.values()].map(p=>({place:p.place,name:p.name,kills:p.kills,dmg:Math.round(p.dmg),win:p.team===winTeam,team:p.team,id:p.id}))
+      .sort((a,b)=>a.place-b.place); // leaderboard = survival order, full stop
     m.players.forEach(p=>{ if(p.client){ wsSend(p.client,{type:'match_end',standings,you:p.id,mode:m.mode}); p.client.match=null; p.client.pid=null; } }); // free the player NOW, not at cleanup 12s later
   }
 }
@@ -437,7 +439,7 @@ function tickMatch(m,dt){
     let taken=false;
     for(const f of m.players.values()){ if(!f.alive)continue;
       if(pk.kind==='med'&&f.hp<100&&Math.hypot(f.x-pk.x,f.y-pk.y)<38){ f.hp=Math.min(100,f.hp+34); taken=true; break; }
-      if(pk.kind==='gun'&&f.input.interact&&!pk.delay&&f.gunCD<=0&&!(pk.ignoreT>0&&pk.ignoreId===f.id)&&Math.hypot(f.x-pk.x,f.y-pk.y)<58){
+      if(pk.kind==='gun'&&f.input.interact&&!pk.delay&&f.gunCD<=0&&!(pk.ignoreT>0&&pk.ignoreId===f.id)&&Math.hypot(f.x-pk.x,f.y-pk.y)<68){
         giveGun(m,f,pk.wkey); mEvent(m,{ev:'pickup',name:f.name,pId:f.id,wkey:pk.wkey}); taken=true; break; }
     }
     if(taken||pk.life<=0)m.pickups.splice(i,1);

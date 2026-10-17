@@ -377,6 +377,18 @@ const WSTATS={pistol:{rate:.21,speed:1350,spread:.014,pellets:1,kick:1.6,bloom:.
 let rollIv=null, rollTo=null;
 const RARITY={pistol:'STARTER',shotgun:'RARE',uzi:'EPIC',m4:'EPIC',ak:'EPIC',lmg:'LEGENDARY',rpg:'LEGENDARY'};
 let rollHideTo=null, rollAwait=false, rollFinal=null, rollTickN=0, lastPredictAt=0;
+let predPick=null;
+function predictPickup(pk){ // mirror the server's giveGun so the equip lands the same frame you press E
+  if(!pk||!latestSnap||!latestSnap.self||matchPhase!=='live'||!myAlive)return;
+  if(predPick&&performance.now()<predPick.until&&predPick.hide.wkey===pk.wkey&&Math.hypot(predPick.hide.x-pk.x,predPick.hide.y-pk.y)<10)return; // already predicted this one
+  const WMAG={pistol:14,shotgun:6,m4:32,ak:30,lmg:90,uzi:42,rpg:4};
+  const sf=latestSnap.self, inv=sf.inv.slice(), ammos=sf.ammos.slice(); let slot=sf.slot; const key=pk.wkey;
+  const ix=inv.indexOf(key);
+  if(ix>=0){ slot=ix; ammos[ix]=WMAG[key]||ammos[ix]; }
+  else if(inv.length<2){ inv.push(key); ammos.push(WMAG[key]||30); slot=inv.length-1; }
+  else { inv[slot]=key; ammos[slot]=WMAG[key]||30; }
+  predPick={inv,ammos,slot,weapon:inv[slot],ammo:ammos[slot],hide:{x:pk.x,y:pk.y,wkey:key},until:performance.now()+900};
+}
 function predictRoll(){ const now=performance.now(); if(now-lastPredictAt<1600||rollAwait)return; lastPredictAt=now; showRoll(null); }
 function showRoll(finalKey){
   const order=['shotgun','uzi','m4','ak','lmg','rpg'], el=$('roll');
@@ -616,7 +628,9 @@ function onMsg(m){
   if(m.type==='queued'||m.type==='queue'){ renderMM(m.count||1,m.target||12,0,m.members||[],m.pos||0); }
   if(m.type==='match_start'){ myAlive=true; myPlace=0; lastKillerId=null; specId=null; fxB=[]; parts=[]; floaters=[]; trauma=0; $('spec').style.display='none'; myId=m.id; mapData=m; snaps=[]; latestSnap=null; pred=null; inMatch=true; matchPhase='countdown';
     $('queueOv').classList.remove('on'); $('lobby').classList.remove('on'); $('hud').classList.add('on'); announce('MATCH FOUND!','#3dff73'); toast('Match found! Get ready…',2000); }
-  if(m.type==='snap'){ m._t=performance.now(); snaps.push(m); if(snaps.length>24)snaps.shift(); latestSnap=m; matchPhase=m.phase; updateHUD(m);
+  if(m.type==='snap'){ m._t=performance.now(); snaps.push(m); if(snaps.length>24)snaps.shift(); latestSnap=m; matchPhase=m.phase;
+    if(predPick){ const sf=m.self; if((sf&&sf.inv.join()===predPick.inv.join()&&sf.slot===predPick.slot)||performance.now()>predPick.until)predPick=null; } // server caught up with the predicted equip
+    updateHUD(m);
     if(m.phase==='countdown'){ const c=$('count'); c.style.display='block'; c.textContent=Math.max(1,Math.ceil(m.t)); } else $('count').style.display='none';
     const me=m.players.find(p=>p.id===myId); if(me&&pred===null&&me.x!==undefined)pred={x:me.x,y:me.y,vx:0,vy:0}; }
   if(m.type==='event'){
@@ -643,8 +657,9 @@ function onMsg(m){
   }
   if(m.type==='match_end'){ if(!inMatch)return; inMatch=false; $('count').style.display='none';
     const total=m.standings.length;
-    const place=myAlive?1:(myPlace||total);
-    const win=place===1;
+    const myRow=m.standings.find(x2=>x2.id===m.you);
+    const place=myRow?myRow.place:(myAlive?1:(myPlace||total)); // the server's survival placement is the truth — title, rewards and table all agree now
+    const win=myRow?!!myRow.win:place===1;
     const myKills=(latestSnap&&latestSnap.self)?latestSnap.self.kills:0;
     const myDmg=(latestSnap&&latestSnap.self)?(latestSnap.self.dmg||0):0;
     // rewards: coins + XP
@@ -685,7 +700,8 @@ function onMsg(m){
   }
 }
 function updateHUD(m){
-  const s2=m.self; if(!s2)return;
+  let s2=m.self; if(!s2)return;
+  if(predPick&&performance.now()<predPick.until)s2={...s2,weapon:predPick.weapon,ammo:predPick.ammo,inv:predPick.inv,ammos:predPick.ammos,slot:predPick.slot}; // predicted equip: show it now
   $('hpBar').style.width=Math.max(0,s2.hp)+'%'; $('hpBar').style.background=s2.hp<32?'#e8233f':'linear-gradient(180deg,#7dff9a,#22c94f)';
   $('hpTxt').textContent=s2.hp; $('aliveN').textContent=m.alive; $('killN').textContent=s2.kills;
   const w=WN[s2.weapon]||WN.pistol; $('gunName').textContent=w[0]; $('gunName').style.color=w[1]; $('ammo').textContent=s2.ammo;
@@ -739,7 +755,7 @@ function readInput(){
   else if(pred)myAim=Math.atan2((mouse.y-VH/2)-(pred.y-28-cam.y),(mouse.x-VW/2)-(pred.x-cam.x));
   return {mx,my,aim:myAim+localRecoilA,fire:mouse.down||tAim.fire,dash:dashQ,swap:swapQ,reload:reloadQ,interact:!!keys.KeyE||touchOpen,pinpoint:!!CH.pinpoint};
 }
-setInterval(()=>{ if(ws&&ws.readyState===1&&inMatch){ const inp=readInput(); ws.send(JSON.stringify({type:'input',input:inp})); dashQ=false; swapQ=false; reloadQ=false; } },16);
+// (inputs are sent from inside frame() now — aligned to rendering, not a drifting timer)
 
 function localFireFX(dt){
   localCool-=dt; localBloom=Math.max(0,localBloom-dt*(((window._moveF||0)>.1)?.038:.13));
@@ -790,7 +806,7 @@ function tracerHitAt(x,y,players){ if(tracerBlocked(x,y))return 'wall';
 /* render */
 function interpPlayers(){
   if(!snaps.length)return [];
-  const rt=performance.now()-45;
+  const rt=performance.now()-30;
   let newer=snaps[snaps.length-1], older=newer;
   for(let i=snaps.length-1;i>=0;i--){ if(snaps[i]._t<=rt){ older=snaps[i]; newer=snaps[Math.min(snaps.length-1,i+1)]; break; } }
   const span=Math.max(1,newer._t-older._t), t=clamp((rt-older._t)/span,0,1);
@@ -799,7 +815,7 @@ function interpPlayers(){
     const o=older.players.find(q=>q.id===p.id);
     if(!o||o.x===undefined)return p;
     let ix=o.x+(p.x-o.x)*t, iy=o.y+(p.y-o.y)*t;
-    if(rt>newer._t&&span>1){ const ex=Math.min((rt-newer._t)/1000,.055); ix+=(p.x-o.x)/(span/1000)*ex; iy+=(p.y-o.y)/(span/1000)*ex; }
+    if(rt>newer._t&&span>1){ const ex=Math.min((rt-newer._t)/1000,.085); ix+=(p.x-o.x)/(span/1000)*ex; iy+=(p.y-o.y)/(span/1000)*ex; }
     return {...p,x:ix,y:iy,aim:o.aim+angWrap(p.aim-o.aim)*t};
   });
 }
@@ -834,6 +850,7 @@ function frame(now){
     else if(matchPhase==='live'&&dist>48&&localDashT<=0){ const k=1-Math.exp(-2.5*dt); pred.x+=dx*k; pred.y+=dy*k; } // trust your input inside 48px
     if(myAlive){ const cd=1-Math.exp(-13*dt); cam.x+=((pred.x)-cam.x)*cd; cam.y+=((pred.y-16)-cam.y)*cd; }
   }
+  if(ws&&ws.readyState===1&&inMatch){ const inpS=readInput(); ws.send(JSON.stringify({type:'input',input:inpS})); dashQ=false; swapQ=false; reloadQ=false; } // sent after prediction consumed the same edge flags
   localFireFX(dt);
   const meP=me;
   if(meP){ if(meP.alive&&!myAlive){} if(!meP.alive&&myAlive){ myAlive=false; myPlace=(latestSnap.alive||0)+1; } if(meP.alive)myAlive=true; }
@@ -846,14 +863,15 @@ function frame(now){
     const sp=$('spec'); sp.style.display='block'; sp.textContent='💀 #'+myPlace+' · SPECTATING '+(target?target.name:'')+' · CLICK: NEXT FIGHTER · ⬅ QUIT TO MENU'; }
   else $('spec').style.display='none';
   // open-crate prompt
-  let promptTxt='';
+  let promptTxt='', pk2=null;
   if(myAlive&&pred&&latestSnap){
-    const pk2=(latestSnap.pickups||[]).find(q=>q.kind==='gun'&&(q.delay||0)<=0.05&&Math.hypot(q.x-pred.x,q.y-pred.y)<62);
+    pk2=(latestSnap.pickups||[]).find(q=>q.kind==='gun'&&(q.delay||0)<=0.05&&!(q.ignoreId===myId&&(q.ignoreT||0)>0)&&Math.hypot(q.x-pred.x,q.y-pred.y)<62);
     if(pk2)promptTxt='E — PICK UP '+(((WN[pk2.wkey]||[])[0])||pk2.wkey);
     else if((latestSnap.crates||[]).some(c=>!c.open&&Math.hypot(c.x-pred.x,c.y-pred.y)<85))promptTxt='E — OPEN CRATE';
   }
   $('prompt').textContent=promptTxt; $('prompt').style.display=promptTxt?'block':'none';
     if(promptTxt==='E — OPEN CRATE'&&(keys.KeyE||touchOpen))predictRoll();
+    if(pk2&&(keys.KeyE||touchOpen))predictPickup(pk2); // floor gun under E? equip it NOW, don't wait for the server round trip
   { const nowP=performance.now(); // dash afterimages + footstep dust (players computed above)
     for(const p of players){ if(!p.alive||p.x===undefined)continue;
       const px=p.id===myId&&pred?pred.x:p.x, py=p.id===myId&&pred?pred.y:p.y;
@@ -874,7 +892,7 @@ function frame(now){
     if(img&&img.complete&&img.naturalWidth)ctx.drawImage(img,c.x-28,c.y-24,56,56*img.height/img.width); else { ctx.fillStyle='#8a5a1d'; ctx.fillRect(c.x-20,c.y-18,40,34); }
     ctx.fillStyle=c.tier==='Neon'?'#4de8e0':'#ffd52e'; ctx.fillText('▼ LOOT',c.x,c.y-30); });
   // floor pickups
-  (latestSnap.pickups||[]).forEach((pk,i)=>{ const bob=Math.sin(performance.now()/280+i)*3;
+  (latestSnap.pickups||[]).forEach((pk,i)=>{ if(predPick&&performance.now()<predPick.until&&pk.kind==='gun'&&pk.wkey===predPick.hide.wkey&&Math.hypot(pk.x-predPick.hide.x,pk.y-predPick.hide.y)<10)return; const bob=Math.sin(performance.now()/280+i)*3;
     if(pk.kind==='med'){ ctx.fillStyle='#fff'; ctx.fillRect(pk.x-11,pk.y-11+bob,22,22); ctx.fillStyle='#e8233f'; ctx.fillRect(pk.x-3,pk.y-8+bob,6,16); ctx.fillRect(pk.x-8,pk.y-3+bob,16,6); }
     else { const g2=GUNS[pk.wkey]||IMGS[pk.wkey];
       ctx.strokeStyle=(WN[pk.wkey]||[])[1]||'#ffd52e'; ctx.globalAlpha=.5+.3*Math.sin(performance.now()/200+i*1.3); ctx.lineWidth=2;
